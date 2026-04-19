@@ -15,6 +15,14 @@
     let currentPage = 1;
     const PAGE_SIZE = 50;
 
+    // Defer render to the next task so the browser can paint the interaction first (fixes INP)
+    let renderPending = false;
+    function scheduleRender() {
+        if (renderPending) return;
+        renderPending = true;
+        setTimeout(() => { renderPending = false; renderAll(); }, 0);
+    }
+
     // ── DOM ──
     const $id = (id) => document.getElementById(id);
 
@@ -290,7 +298,7 @@
         prev.className = 'page-btn';
         prev.textContent = '←';
         prev.disabled = page <= 1;
-        prev.addEventListener('click', () => { currentPage--; renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+        prev.addEventListener('click', () => { currentPage--; scheduleRender(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
         bar.appendChild(prev);
 
         // Page number buttons (show up to 5 around current)
@@ -301,7 +309,7 @@
             btn.className = 'page-btn' + (i === page ? ' active' : '');
             btn.textContent = i;
             const p = i;
-            btn.addEventListener('click', () => { currentPage = p; renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+            btn.addEventListener('click', () => { currentPage = p; scheduleRender(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
             bar.appendChild(btn);
         }
 
@@ -309,7 +317,7 @@
         next.className = 'page-btn';
         next.textContent = '→';
         next.disabled = page >= totalPages;
-        next.addEventListener('click', () => { currentPage++; renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+        next.addEventListener('click', () => { currentPage++; scheduleRender(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
         bar.appendChild(next);
     }
 
@@ -452,7 +460,7 @@
 
     // ── FILTERS ──
     [filterLotType, filterAgency, filterSort].forEach(el => {
-        el.addEventListener('change', () => { currentPage = 1; renderAll(); });
+        el.addEventListener('change', () => { currentPage = 1; scheduleRender(); });
     });
 
     // ── AVAILABILITY FILTER PILLS ──
@@ -461,7 +469,7 @@
         $id(id).addEventListener('click', () => {
             availFilter = availFilter === key ? null : key;
             currentPage = 1;
-            renderAll();
+            scheduleRender();
         });
     });
 
@@ -471,7 +479,7 @@
             chip.classList.add('active');
             activeArea = chip.dataset.area;
             currentPage = 1;
-            renderAll();
+            scheduleRender();
         });
     });
 
@@ -488,7 +496,7 @@
             hideSuggestions();
             if (val.length === 0) {
                 searchCenter = null;
-                renderAll();
+                scheduleRender();
             }
             return;
         }
@@ -508,7 +516,7 @@
         btnClear.classList.remove('visible');
         hideSuggestions();
         searchCenter = null;
-        renderAll();
+        scheduleRender();
     });
 
     async function geocodeSearch(query) {
@@ -540,7 +548,7 @@
                 };
                 hideSuggestions();
                 filterSort.value = 'nearest';
-                renderAll();
+                scheduleRender();
             });
             suggestionsEl.appendChild(item);
         });
@@ -577,7 +585,7 @@
                 filterSort.value = 'nearest';
                 btnLocate.disabled = false;
                 btnLocate.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="10" stroke-opacity="0.3"/></svg> Near Me`;
-                renderAll();
+                scheduleRender();
             },
             (err) => {
                 btnLocate.disabled = false;
