@@ -104,13 +104,16 @@ const MapManager = (() => {
                 icon
             });
 
-            const typeEmoji = cp.LotType === 'Y' ? '🏍️' : cp.LotType === 'H' ? '🚛' : '🚗';
+            const carSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M19 17H5a2 2 0 0 1-2-2V9l2-4h14l2 4v6a2 2 0 0 1-2 2z"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>';
+            const motoSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>';
+            const truckSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 6v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>';
+            const typeIcon = cp.LotType === 'Y' ? motoSvg : cp.LotType === 'H' ? truckSvg : carSvg;
             const availColor = lots > 50 ? '#16a34a' : lots >= 10 ? '#b45309' : '#dc2626';
 
             marker.bindPopup(`
         <div class="map-popup-name">${cp.Development || cp.CarParkID}</div>
         <div class="map-popup-sub">${cp.Agency} ${cp.Area ? '· ' + cp.Area : ''}</div>
-        <div class="map-popup-avail" style="color:${availColor}">${typeEmoji} ${lots} lots available</div>
+        <div class="map-popup-avail" style="color:${availColor}">${typeIcon} ${lots} lots available</div>
       `);
 
             marker.on('click', () => {

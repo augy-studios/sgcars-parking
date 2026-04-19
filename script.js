@@ -50,7 +50,10 @@
     }
 
     function lotTypeLabel(t) {
-        return t === 'Y' ? '🏍️ Motorcycles' : t === 'H' ? '🚛 Heavy Vehicles' : '🚗 Cars';
+        const car = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M19 17H5a2 2 0 0 1-2-2V9l2-4h14l2 4v6a2 2 0 0 1-2 2z"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>';
+        const moto = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>';
+        const truck = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 6v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>';
+        return t === 'Y' ? `${moto} Motorcycles` : t === 'H' ? `${truck} Heavy Vehicles` : `${car} Cars`;
     }
 
     function availClass(n) {
@@ -285,8 +288,8 @@
         </div>
       </div>
       <div class="card-footer">
-        <span>${distText ? `📍 ${distText}` : ''}</span>
-        <span>⏱ ${updatedAgo}</span>
+        <span>${distText ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${distText}` : ''}</span>
+        <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${updatedAgo}</span>
       </div>
     `;
 
@@ -309,7 +312,7 @@
         <span class="detail-badge">${cp.Agency}</span>
         ${cp.Area ? `<span class="detail-badge">${cp.Area}</span>` : ''}
         <span class="detail-badge">${lotTypeLabel(cp.LotType)}</span>
-        ${dist ? `<span class="detail-badge">📍 ${dist}</span>` : ''}
+        ${dist ? `<span class="detail-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${dist}</span>` : ''}
       </div>
       <div class="detail-avail-grid">
         <div class="detail-avail-card">

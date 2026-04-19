@@ -51,7 +51,7 @@
     <header class="app-header glass">
         <div class="header-inner">
             <div class="header-brand">
-                <span class="brand-icon">🅿️</span>
+                <span class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></svg></span>
                 <span class="brand-name">SG Car Parking</span>
             </div>
             <div class="header-actions">
@@ -132,9 +132,9 @@
                     <label>Lot Type</label>
                     <select id="filter-lottype">
                         <option value="all">All</option>
-                        <option value="C">🚗 Cars</option>
-                        <option value="Y">🏍️ Motorcycles</option>
-                        <option value="H">🚛 Heavy Vehicles</option>
+                        <option value="C">Cars</option>
+                        <option value="Y">Motorcycles</option>
+                        <option value="H">Heavy Vehicles</option>
                     </select>
                 </div>
                 <div class="filter-group">
@@ -176,7 +176,7 @@
 
         <!-- Permission gate -->
         <div class="permission-gate glass" id="permission-gate">
-            <div class="perm-icon">📍</div>
+            <div class="perm-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
             <h2>Location Access Required</h2>
             <p>SG Car Parking needs your location to show the nearest carparks. Your location is never stored or shared.
             </p>
@@ -191,7 +191,7 @@
 
         <!-- Error state -->
         <div class="error-state glass" id="error-state" hidden>
-            <div class="error-icon">⚠️</div>
+            <div class="error-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
             <p id="error-msg">Something went wrong. Please try again.</p>
             <button class="primary-btn" id="btn-retry">Retry</button>
         </div>
@@ -201,7 +201,7 @@
 
         <!-- Empty state -->
         <div class="empty-state glass" id="empty-state" hidden>
-            <div class="empty-icon">🅿️</div>
+            <div class="empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></svg></div>
             <p>No carparks found matching your filters.</p>
         </div>
 

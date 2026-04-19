@@ -103,9 +103,12 @@ const CarparkManager = (() => {
             const color = availColor(avail);
             const cls = availClass(avail);
             const dist = cp._dist !== undefined && cp._dist !== Infinity ?
-                `<span class="cp-distance">📍 ${formatDist(cp._dist)} away</span> · ` : '';
+                `<span class="cp-distance"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${formatDist(cp._dist)} away</span> · ` : '';
             const area = cp.Area ? `${cp.Area} · ` : '';
-            const lot = cp.LotType === 'C' ? '🚗 Cars' : cp.LotType === 'Y' ? '🏍 Motorcycles' : cp.LotType === 'H' ? '🚛 Heavy' : cp.LotType;
+            const carSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M19 17H5a2 2 0 0 1-2-2V9l2-4h14l2 4v6a2 2 0 0 1-2 2z"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>';
+            const motoSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>';
+            const truckSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 6v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>';
+            const lot = cp.LotType === 'C' ? `${carSvg} Cars` : cp.LotType === 'Y' ? `${motoSvg} Motorcycles` : cp.LotType === 'H' ? `${truckSvg} Heavy` : cp.LotType;
 
             return `
         <article class="cp-card" style="--avail-color:${color}" data-id="${cp.CarParkID}"
@@ -148,7 +151,7 @@ const CarparkManager = (() => {
             });
             card.querySelector('.map-btn')?.addEventListener('click', e => {
                 e.stopPropagation();
-                if (!isNaN(lat)) MapManager.focusPoint(lat, lng, `🅿️ ${name}`);
+                if (!isNaN(lat)) MapManager.focusPoint(lat, lng, `P ${name}`);
             });
         });
     }
