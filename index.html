@@ -52,9 +52,18 @@
         <div class="header-inner">
             <div class="header-brand">
                 <span class="brand-icon"><img src="SCPH-main.png" alt="SG Car Parking" width="26" height="26" style="border-radius:4px;display:block;"></span>
-                <span class="brand-name">SG Car Parking</span>
+                <span class="brand-name">SG Car Parking Finder</span>
             </div>
             <div class="header-actions">
+                <a href="https://donate.stripe.com/28o2akeAr3hv0DK6oo" target="_blank" rel="noopener noreferrer" class="icon-btn coffee-btn" title="Buy Augy a Coffee" aria-label="Buy Augy a Coffee">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 8h1a4 4 0 0 1 0 8h-1"/>
+                        <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/>
+                        <line x1="6" y1="2" x2="6" y2="4"/>
+                        <line x1="10" y1="2" x2="10" y2="4"/>
+                        <line x1="14" y1="2" x2="14" y2="4"/>
+                    </svg>
+                </a>
                 <button class="icon-btn" id="btn-refresh" title="Refresh data" aria-label="Refresh">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
                         stroke-linejoin="round">
@@ -292,6 +301,10 @@
             navigator.serviceWorker.register('/sw.js');
         }
     </script>
+
+    <footer class="app-footer">
+        <span>Made with ❤️ by Augy</span>
+    </footer>
 
 </body>
 

@@ -1372,3 +1372,19 @@ button.stat-pill.active {
   font-size: 1.1rem;
   margin-top: 6px;
 }
+
+.coffee-btn {
+  text-decoration: none;
+}
+
+.coffee-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.app-footer {
+  text-align: center;
+  padding: 16px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
