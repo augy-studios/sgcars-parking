@@ -1,7 +1,7 @@
 {
-    "name": "SG Car Parking by UwU Apps",
-    "short_name": "SG Car Parking",
-    "description": "A simple template app; view live template at a glance!",
+    "name": "SG Car Parking Finder by UwU Apps",
+    "short_name": "SG Car Parking Finder",
+    "description": "Real-time Singapore carpark availability finder at your fingertips!",
     "icons": [{
         "src": "templateicon1.png",
         "type": "image/png",

@@ -1,6 +1,6 @@
-# SG Car Parking 🅿️
+# SG Car Parking Finder 🅿️
 
-Real-time Singapore carpark availability finder — HDB, LTA & URA data via LTA DataMall.
+Real-time Singapore carpark availability finder at your fingertips!
 
 ---
 
