@@ -4,7 +4,28 @@
     "cleanUrls": true,
     "regions": ["sin1"],
     "rewrites": [{
-        "source": "/",
-        "destination": "/"
+            "source": "/api/carparks",
+            "destination": "/api/carparks"
+        },
+        {
+            "source": "/api/ev",
+            "destination": "/api/ev"
+        }
+    ],
+    "headers": [{
+        "source": "/(.*)",
+        "headers": [{
+                "key": "X-Content-Type-Options",
+                "value": "nosniff"
+            },
+            {
+                "key": "X-Frame-Options",
+                "value": "DENY"
+            },
+            {
+                "key": "Referrer-Policy",
+                "value": "strict-origin-when-cross-origin"
+            }
+        ]
     }]
 }
