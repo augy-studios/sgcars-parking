@@ -1,6 +1,6 @@
 {
-    "name": "SG Park n' Charge by UwU Apps",
-    "short_name": "SG Park n' Charge",
+    "name": "SG Car Parking by UwU Apps",
+    "short_name": "SG Car Parking",
     "description": "A simple template app; view live template at a glance!",
     "icons": [{
         "src": "templateicon1.png",
@@ -26,7 +26,7 @@
     "display": "standalone",
     "display_override": ["fullscreen", "minimal-ui", "window-controls-overlay"],
     "orientation": "portrait-primary",
-    "id": "sg-park-charge",
+    "id": "sg-cars-parking",
     "dir": "ltr",
     "scope": "/",
     "lang": "en",

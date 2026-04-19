@@ -1,55 +1,53 @@
 export default async function handler(req, res) {
-    // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
     if (req.method === 'OPTIONS') return res.status(200).end();
-    if (req.method !== 'GET') return res.status(405).json({
-        error: 'Method not allowed'
-    });
 
-    const LTA_KEY = process.env.LTA_ACCOUNT_KEY;
-    if (!LTA_KEY) return res.status(500).json({
-        error: 'LTA API key not configured'
-    });
-
-    const url = 'https://datamall2.mytransport.sg/ltaodataservice/CarParkAvailabilityv2';
+    const apiKey = process.env.LTA_ACCOUNT_KEY;
+    if (!apiKey) {
+        return res.status(500).json({
+            error: 'LTA API key not configured'
+        });
+    }
 
     try {
-        let all = [];
+        let allRecords = [];
         let skip = 0;
-        const pageSize = 500;
+        const batchSize = 500;
 
-        // Paginate through all results (LTA returns max 500 per call)
         while (true) {
-            const fetchUrl = skip > 0 ? `${url}?$skip=${skip}` : url;
-            const ltaRes = await fetch(fetchUrl, {
+            const url = `https://datamall2.mytransport.sg/ltaodataservice/CarParkAvailabilityv2?$skip=${skip}`;
+            const response = await fetch(url, {
                 headers: {
-                    AccountKey: LTA_KEY,
-                    accept: 'application/json',
-                },
+                    'AccountKey': apiKey,
+                    'accept': 'application/json'
+                }
             });
 
-            if (!ltaRes.ok) throw new Error(`LTA API error: ${ltaRes.status}`);
-            const data = await ltaRes.json();
-            const batch = data.value || [];
-            all = all.concat(batch);
+            if (!response.ok) {
+                throw new Error(`LTA API error: ${response.status}`);
+            }
 
-            if (batch.length < pageSize) break;
-            skip += pageSize;
-            if (skip > 10000) break; // safety cap
+            const data = await response.json();
+            const records = data.value || [];
+
+            if (records.length === 0) break;
+
+            allRecords = allRecords.concat(records);
+
+            if (records.length < batchSize) break;
+            skip += batchSize;
         }
 
-        // Cache for 50 seconds (just under 1-min update freq)
-        res.setHeader('Cache-Control', 's-maxage=50, stale-while-revalidate=10');
+        res.setHeader('Cache-Control', 's-maxage=55, stale-while-revalidate=5');
         return res.status(200).json({
-            value: all,
-            count: all.length
+            value: allRecords,
+            timestamp: new Date().toISOString(),
+            total: allRecords.length
         });
     } catch (err) {
         console.error('Carpark API error:', err);
-        return res.status(502).json({
+        return res.status(500).json({
             error: err.message
         });
     }

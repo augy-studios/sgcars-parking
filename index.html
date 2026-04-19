@@ -20,12 +20,12 @@
     <link rel="manifest" href="/manifest.json" />
 
     <meta charset="utf-8">
-    <title>SG Park n' Charge | UwU Apps</title>
+    <title>SG Car Parking | UwU Apps</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="A simple template app; view live template at a glance!">
 
     <meta property="og:type" content="website">
-    <meta property="og:title" content="SG Park n' Charge | UwU Apps" />
+    <meta property="og:title" content="SG Car Parking | UwU Apps" />
     <meta property="og:site_name" content="UwU Apps" />
     <meta property="og:description" content="A simple template app; view live template at a glance!" />
 
@@ -43,255 +43,245 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script defer="" src="https://use.fontawesome.com/releases/v6.5.2/js/all.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 
 <body data-theme="classic">
-    <!-- HEADER -->
+    <!-- ── HEADER ── -->
     <header class="app-header glass">
         <div class="header-inner">
-            <div class="logo-group">
-                <span class="logo-icon">🅿️</span>
-                <div>
-                    <h1 class="app-title">SG Park n' Charge</h1>
-                    <p class="app-subtitle">Live carparks &amp; EV charging</p>
-                </div>
+            <div class="header-brand">
+                <span class="brand-icon">🅿️</span>
+                <span class="brand-name">SG Car Parking</span>
             </div>
             <div class="header-actions">
-                <button class="icon-btn" id="refreshBtn" title="Refresh data" aria-label="Refresh">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                        stroke-linecap="round" stroke-linejoin="round">
+                <button class="icon-btn" id="btn-refresh" title="Refresh data" aria-label="Refresh">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                        stroke-linejoin="round">
                         <polyline points="23 4 23 10 17 10" />
-                        <polyline points="1 20 1 14 7 14" />
-                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>
                 </button>
-                <button class="icon-btn" id="themeBtn" title="Change theme" aria-label="Theme picker">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M12 2a10 10 0 0 1 0 20" />
-                        <circle cx="12" cy="12" r="4" /></svg>
+                <button class="icon-btn" id="btn-theme" title="Theme" aria-label="Change theme">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5" />
+                        <line x1="12" y1="1" x2="12" y2="3" />
+                        <line x1="12" y1="21" x2="12" y2="23" />
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                        <line x1="1" y1="12" x2="3" y2="12" />
+                        <line x1="21" y1="12" x2="23" y2="12" />
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
                 </button>
             </div>
         </div>
-        <div class="update-bar">
-            <span id="updateText">Locating you…</span>
+        <div class="last-updated-bar">
+            <span id="last-updated-text">Fetching live data…</span>
+            <div class="auto-refresh-indicator" id="refresh-indicator"></div>
         </div>
     </header>
 
-    <!-- TABS -->
-    <nav class="tab-nav" role="tablist">
-        <button class="tab-btn active" role="tab" data-tab="carparks" aria-selected="true">🚗 Carparks</button>
-        <button class="tab-btn" role="tab" data-tab="ev" aria-selected="false">⚡ EV Charging</button>
-    </nav>
+    <!-- ── MAIN ── -->
+    <main class="app-main">
 
-    <!-- MAIN -->
-    <main class="main-content">
-
-        <!-- CARPARKS TAB -->
-        <section id="tab-carparks" class="tab-panel active" role="tabpanel">
-            <div class="controls-row glass">
-                <div class="search-wrap">
-                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Search + Filter bar -->
+        <section class="search-section glass">
+            <div class="search-row">
+                <div class="search-input-wrap">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="11" cy="11" r="8" />
                         <line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                    <input type="text" id="cpSearch" class="search-input" placeholder="Search carpark name or area…"
-                        autocomplete="off" />
+                    <input type="text" id="search-input" placeholder="Search area or address…" autocomplete="off" />
+                    <button class="clear-btn" id="btn-clear-search" title="Clear" aria-label="Clear search">✕</button>
                 </div>
-                <div class="filter-chips">
-                    <span class="filter-label">Type:</span>
-                    <button class="chip active" data-filter="lot" data-value="all">All</button>
-                    <button class="chip" data-filter="lot" data-value="C">🚗 Cars</button>
-                    <button class="chip" data-filter="lot" data-value="Y">🏍 Moto</button>
-                    <button class="chip" data-filter="lot" data-value="H">🚛 Heavy</button>
-                    <span class="filter-label">Agency:</span>
-                    <button class="chip active" data-filter="agency" data-value="all">All</button>
-                    <button class="chip" data-filter="agency" data-value="HDB">HDB</button>
-                    <button class="chip" data-filter="agency" data-value="LTA">LTA</button>
-                    <button class="chip" data-filter="agency" data-value="URA">URA</button>
+                <button class="primary-btn" id="btn-locate" title="Use my location">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+                        <circle cx="12" cy="12" r="10" stroke-opacity="0.3" /></svg>
+                    Near Me
+                </button>
+                <button class="outline-btn" id="btn-map-toggle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+                        <line x1="9" y1="3" x2="9" y2="18" />
+                        <line x1="15" y1="6" x2="15" y2="21" /></svg>
+                    Map
+                </button>
+            </div>
+
+            <!-- Area Quick Filters -->
+            <div class="area-chips-row">
+                <span class="chips-label">LTA areas:</span>
+                <div class="chips">
+                    <button class="chip active" data-area="all">All</button>
+                    <button class="chip" data-area="Orchard">Orchard</button>
+                    <button class="chip" data-area="Marina">Marina</button>
+                    <button class="chip" data-area="HarbourFront">HarbourFront</button>
+                    <button class="chip" data-area="JurongLakeDistrict">Jurong Lake</button>
                 </div>
             </div>
 
-            <div class="notice-banner">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
+            <!-- Filters row -->
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label>Lot Type</label>
+                    <select id="filter-lottype">
+                        <option value="all">All</option>
+                        <option value="C">🚗 Cars</option>
+                        <option value="Y">🏍️ Motorcycles</option>
+                        <option value="H">🚛 Heavy Vehicles</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Agency</label>
+                    <select id="filter-agency">
+                        <option value="all">All</option>
+                        <option value="HDB">HDB</option>
+                        <option value="LTA">LTA</option>
+                        <option value="URA">URA</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Sort By</label>
+                    <select id="filter-sort">
+                        <option value="nearest">Nearest First</option>
+                        <option value="available">Most Available</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Info banner -->
+            <div class="info-banner">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" class="info-icon">
                     <circle cx="12" cy="12" r="10" />
                     <line x1="12" y1="8" x2="12" y2="12" />
                     <line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-                LTA carparks cover <strong>Orchard, Marina, HarbourFront &amp; Jurong Lake District</strong> only. HDB
-                &amp; URA cover the rest of Singapore.
+                <span>LTA &amp; URA carparks shown for selected areas only. HDB carparks are island-wide.</span>
             </div>
-
-            <div class="action-bar">
-                <button class="map-toggle-btn" id="cpMapBtn">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                        <line x1="8" y1="2" x2="8" y2="18" />
-                        <line x1="16" y1="6" x2="16" y2="22" /></svg>
-                    Show Map
-                </button>
-                <span id="cpCount" class="result-count"></span>
-            </div>
-
-            <div id="cpLoading" class="loader-wrap">
-                <div class="spinner"></div>
-                <p>Fetching carpark data…</p>
-            </div>
-            <div id="cpError" class="error-banner hidden"></div>
-            <div id="cpCards" class="cards-grid"></div>
-            <p id="cpEmpty" class="empty-msg hidden">No carparks match your filters.</p>
         </section>
 
-        <!-- EV TAB -->
-        <section id="tab-ev" class="tab-panel" role="tabpanel">
-            <div class="controls-row glass">
-                <div class="search-wrap">
-                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                    <input type="text" id="evPostal" class="search-input" placeholder="Enter 6-digit postal code…"
-                        maxlength="6" inputmode="numeric" />
-                </div>
-                <button class="btn-primary" id="evSearch">Search</button>
-                <button class="btn-secondary" id="evLocate">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>
-                    My Location
-                </button>
-            </div>
+        <!-- Stats bar -->
+        <div class="stats-bar" id="stats-bar">
+            <div class="stat-pill" id="stat-total">— carparks</div>
+            <div class="stat-pill green" id="stat-available">— available</div>
+            <div class="stat-pill amber" id="stat-limited">— limited</div>
+            <div class="stat-pill red" id="stat-full">— full</div>
+        </div>
 
-            <div class="action-bar">
-                <button class="map-toggle-btn" id="evMapBtn">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                        <line x1="8" y1="2" x2="8" y2="18" />
-                        <line x1="16" y1="6" x2="16" y2="22" /></svg>
-                    Show Map
-                </button>
-            </div>
+        <!-- Permission gate -->
+        <div class="permission-gate glass" id="permission-gate">
+            <div class="perm-icon">📍</div>
+            <h2>Location Access Required</h2>
+            <p>SG Car Parking needs your location to show the nearest carparks. Your location is never stored or shared.
+            </p>
+            <button class="primary-btn large" id="btn-grant-location">Grant Location Access</button>
+        </div>
 
-            <div id="evLoading" class="loader-wrap hidden">
-                <div class="spinner"></div>
-                <p>Fetching EV charging data…</p>
-            </div>
-            <div id="evError" class="error-banner hidden"></div>
-            <div id="evPrompt" class="empty-msg">Enter a postal code or tap <strong>My Location</strong> to find EV
-                chargers nearby.</div>
-            <div id="evCards" class="cards-grid"></div>
-        </section>
+        <!-- Loading state -->
+        <div class="loading-state" id="loading-state" hidden>
+            <div class="spinner"></div>
+            <p>Fetching live carpark data…</p>
+        </div>
+
+        <!-- Error state -->
+        <div class="error-state glass" id="error-state" hidden>
+            <div class="error-icon">⚠️</div>
+            <p id="error-msg">Something went wrong. Please try again.</p>
+            <button class="primary-btn" id="btn-retry">Retry</button>
+        </div>
+
+        <!-- Cards grid -->
+        <div class="cards-grid" id="cards-grid"></div>
+
+        <!-- Empty state -->
+        <div class="empty-state glass" id="empty-state" hidden>
+            <div class="empty-icon">🅿️</div>
+            <p>No carparks found matching your filters.</p>
+        </div>
 
     </main>
 
-    <!-- MAP MODAL -->
-    <div id="mapModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Map">
-        <div class="modal-box map-modal-box">
+    <!-- ── MAP MODAL ── -->
+    <div class="modal-overlay" id="map-modal" hidden>
+        <div class="modal map-modal-inner glass">
             <div class="modal-header">
-                <h2 id="mapModalTitle">Map</h2>
-                <button class="icon-btn" id="closeMapModal" aria-label="Close map">✕</button>
+                <h2>Map View</h2>
+                <button class="icon-btn" id="btn-close-map" aria-label="Close map">✕</button>
             </div>
-            <div id="mapContainer"></div>
+            <div id="leaflet-map"></div>
+            <div class="map-legend">
+                <span class="legend-dot green"></span> Plenty (&gt;50)
+                <span class="legend-dot amber"></span> Limited (10–50)
+                <span class="legend-dot red"></span> Full (&lt;10)
+            </div>
         </div>
     </div>
 
-    <!-- THEME MODAL -->
-    <div id="themeModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Theme picker">
-        <div class="modal-box theme-modal-box glass">
+    <!-- ── CARPARK DETAIL BOTTOM SHEET ── -->
+    <div class="bottom-sheet-overlay" id="detail-overlay" hidden>
+        <div class="bottom-sheet glass" id="detail-sheet">
+            <div class="sheet-handle"></div>
+            <div id="detail-content"></div>
+        </div>
+    </div>
+
+    <!-- ── THEME MODAL ── -->
+    <div class="modal-overlay" id="theme-modal" hidden>
+        <div class="modal theme-modal-inner glass">
             <div class="modal-header">
                 <h2>Choose Theme</h2>
-                <button class="icon-btn" id="closeThemeModal" aria-label="Close">✕</button>
+                <button class="icon-btn" id="btn-close-theme" aria-label="Close">✕</button>
             </div>
-            <div class="theme-grid">
-                <button class="theme-swatch active" data-theme="classic">
-                    <span class="swatch-dot" style="background:#ccffcc"></span>
-                    <div class="swatch-info"><span>Classic</span><span class="swatch-hex">#ccffcc</span></div>
+            <div class="theme-grid" id="theme-grid">
+                <button class="theme-swatch active" data-theme="classic" style="--swatch:#ccffcc">
+                    <span class="swatch-color"></span>
+                    <span class="swatch-name">Classic</span>
                 </button>
-                <button class="theme-swatch" data-theme="ng1">
-                    <span class="swatch-dot" style="background:#ffcccc"></span>
-                    <div class="swatch-info"><span>Not green 1</span><span class="swatch-hex">#ffcccc</span></div>
+                <button class="theme-swatch" data-theme="notgreen1" style="--swatch:#ffcccc">
+                    <span class="swatch-color"></span>
+                    <span class="swatch-name">Not Green 1</span>
                 </button>
-                <button class="theme-swatch" data-theme="ng2">
-                    <span class="swatch-dot" style="background:#ccccff"></span>
-                    <div class="swatch-info"><span>Not green 2</span><span class="swatch-hex">#ccccff</span></div>
+                <button class="theme-swatch" data-theme="notgreen2" style="--swatch:#ccccff">
+                    <span class="swatch-color"></span>
+                    <span class="swatch-name">Not Green 2</span>
                 </button>
-                <button class="theme-swatch" data-theme="ng3">
-                    <span class="swatch-dot" style="background:#ffffcc"></span>
-                    <div class="swatch-info"><span>Not green 3</span><span class="swatch-hex">#ffffcc</span></div>
+                <button class="theme-swatch" data-theme="notgreen3" style="--swatch:#ffffcc">
+                    <span class="swatch-color"></span>
+                    <span class="swatch-name">Not Green 3</span>
                 </button>
-                <button class="theme-swatch" data-theme="ng4">
-                    <span class="swatch-dot" style="background:#ffccff"></span>
-                    <div class="swatch-info"><span>Not green 4</span><span class="swatch-hex">#ffccff</span></div>
+                <button class="theme-swatch" data-theme="notgreen4" style="--swatch:#ffccff">
+                    <span class="swatch-color"></span>
+                    <span class="swatch-name">Not Green 4</span>
                 </button>
-                <button class="theme-swatch" data-theme="ng5">
-                    <span class="swatch-dot" style="background:#ccffff"></span>
-                    <div class="swatch-info"><span>Not green 5</span><span class="swatch-hex">#ccffff</span></div>
+                <button class="theme-swatch" data-theme="notgreen5" style="--swatch:#ccffff">
+                    <span class="swatch-color"></span>
+                    <span class="swatch-name">Not Green 5</span>
                 </button>
-                <button class="theme-swatch" data-theme="white">
-                    <span class="swatch-dot" style="background:#ffffff;border:1px solid #ddd"></span>
-                    <div class="swatch-info"><span>Really really light green</span><span
-                            class="swatch-hex">#ffffff</span></div>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- NAVIGATE MODAL -->
-    <div id="navModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Navigate">
-        <div class="modal-box nav-modal-box glass">
-            <div class="modal-header">
-                <h2>Navigate to</h2>
-                <button class="icon-btn" id="closeNavModal" aria-label="Close">✕</button>
-            </div>
-            <p id="navModalName" class="nav-dest-name"></p>
-            <div class="nav-options">
-                <a id="navGoogleMaps" class="nav-app-btn" target="_blank" rel="noopener noreferrer">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#4285F4">
-                        <path
-                            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                        </svg>
-                    Google Maps
-                </a>
-                <a id="navWaze" class="nav-app-btn" target="_blank" rel="noopener noreferrer">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#33CCFF">
-                        <circle cx="12" cy="11" r="9" />
-                        <circle cx="9" cy="10" r="1.5" fill="white" />
-                        <circle cx="15" cy="10" r="1.5" fill="white" />
-                        <path d="M9 14 Q12 17 15 14" stroke="white" stroke-width="1.5" fill="none"
-                            stroke-linecap="round" /></svg>
-                    Waze
-                </a>
-                <a id="navAppleMaps" class="nav-app-btn" target="_blank" rel="noopener noreferrer">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#FF3B30">
-                        <path
-                            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                        </svg>
-                    Apple Maps
-                </a>
-                <button class="nav-app-btn" id="navOpenMap">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                        <line x1="8" y1="2" x2="8" y2="18" />
-                        <line x1="16" y1="6" x2="16" y2="22" /></svg>
-                    In-app Map
+                <button class="theme-swatch" data-theme="ultralight" style="--swatch:#ffffff">
+                    <span class="swatch-color swatch-white"></span>
+                    <span class="swatch-name">Really really light green</span>
                 </button>
             </div>
         </div>
     </div>
 
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+    <!-- Leaflet MarkerCluster -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
+    <!-- App JS -->
     <script src="/theme.js"></script>
     <script src="/map.js"></script>
-    <script src="/carparks.js"></script>
-    <script src="/ev.js"></script>
     <script src="/script.js"></script>
 
     <script>

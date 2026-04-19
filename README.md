@@ -1,38 +1,28 @@
-# SG Park n' Charge
+# SG Car Parking 🅿️
 
-Real-time Singapore carpark availability and EV charging points at your fingertips!
+Real-time Singapore carpark availability finder — HDB, LTA & URA data via LTA DataMall.
 
 ---
 
 ## Features
 
-- 🚗 **Carparks tab** — All HDB, LTA, and URA carparks sorted by distance from your GPS location
-  - Filter by lot type (Cars / Motorcycles / Heavy Vehicles)
-  - Filter by agency (HDB / LTA / URA)
-  - Search by name or area
-  - Auto-refresh every 1 minute
-  - Colour-coded availability (green/amber/red)
-
-- ⚡ **EV Charging tab** — EV chargers by postal code
-  - Auto-detect postal code from GPS via Nominatim reverse geocode
-  - Shows available stations only (hides status 100)
-  - Expandable charger detail (plug type, speed, price, individual point status)
-  - Auto-refresh every 5 minutes
-
-- 🗺️ **Map** — Leaflet + OpenStreetMap with MarkerCluster
-  - Different icons for carparks (🅿️) and EV chargers (⚡)
-  - Tap marker → popup with Navigate button
-
-- 🧭 **Navigation** — Google Maps, Waze, Apple Maps, or in-app map
-
-- 🎨 **7 Themes** — Classic, Not green 1-5, Really really light green
-
-- 📱 **PWA** — Installable, offline shell, service worker
+- 📍 GPS-based nearest carpark discovery
+- 🗺️ Interactive map (OpenStreetMap + Leaflet) with colour-coded pins & clustering
+- 🔍 Address/area search with geocoding
+- 🏷️ Quick filter chips for LTA areas (Orchard, Marina, HarbourFront, Jurong Lake)
+- 🚗 Lot type filters: Cars / Motorcycles / Heavy Vehicles
+- 🏢 Agency filters: HDB / LTA / URA
+- ♻️ Auto-refresh every 60 seconds, immediate refresh on tab return
+- 🎨 7 theme options via theme picker
+- 📱 PWA installable on iOS and Android
+- 🧭 Navigate button opens Google Maps / preferred nav app
 
 ---
 
-## LTA API Coverage Notes
+## Coverage Notes
 
-- **CarPark API** updates every 1 minute. Covers HDB, URA, and LTA carparks.
-- **LTA carparks only** cover Orchard, Marina, HarbourFront, and Jurong Lake District.
-- **EV API** updates every 5 minutes and requires a postal code.
+- **HDB** carparks: island-wide
+- **LTA** carparks: Orchard, Marina, HarbourFront, Jurong Lake District only
+- **URA** carparks: selected developments
+
+Availability data updates every **1 minute** per LTA DataMall spec.
