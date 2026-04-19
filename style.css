@@ -638,6 +638,64 @@ body::before {
   background: rgba(239, 68, 68, 0.1);
 }
 
+button.stat-pill {
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s, opacity 0.12s;
+}
+
+button.stat-pill:hover {
+  transform: translateY(-1px);
+  opacity: 0.85;
+}
+
+button.stat-pill.active {
+  box-shadow: 0 0 0 2.5px currentColor;
+  font-weight: 700;
+}
+
+/* ── PAGINATION ── */
+.pagination-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 0 4px;
+  flex-wrap: wrap;
+}
+
+.page-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--radius-chip);
+  border: 1.5px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  color: var(--text-secondary);
+  font-family: var(--font-main);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.12s;
+}
+
+.page-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: var(--brand-dark);
+  color: var(--brand-text);
+}
+
+.page-btn.active {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-color: var(--btn-primary-bg);
+  font-weight: 700;
+}
+
+.page-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 /* ── PERMISSION GATE ── */
 .permission-gate {
   border-radius: var(--radius-card);

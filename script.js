@@ -11,6 +11,9 @@
     let activeArea = 'all';
     let searchCenter = null; // { lat, lng } from geocode
     let mapOpen = false;
+    let availFilter = null; // null | 'available' | 'limited' | 'full'
+    let currentPage = 1;
+    const PAGE_SIZE = 50;
 
     // ── DOM ──
     const $id = (id) => document.getElementById(id);
@@ -218,42 +221,96 @@
     }
 
     function renderAll() {
-        const list = getFilteredSorted();
-        cardsGrid.innerHTML = '';
+        const baseList = getFilteredSorted();
 
-        // Stats
-        let totalAvail = 0,
-            totalLimited = 0,
-            totalFull = 0;
-        list.forEach(cp => {
+        // Stats always reflect the full pre-availFilter list
+        let totalAvail = 0, totalLimited = 0, totalFull = 0;
+        baseList.forEach(cp => {
             const n = parseInt(cp.AvailableLots) || 0;
             if (n > 50) totalAvail++;
             else if (n >= 10) totalLimited++;
             else totalFull++;
         });
-        $id('stat-total').textContent = `${list.length} carparks`;
+        $id('stat-total').textContent = `${baseList.length} carparks`;
         $id('stat-available').textContent = `${totalAvail} available`;
         $id('stat-limited').textContent = `${totalLimited} limited`;
         $id('stat-full').textContent = `${totalFull} full`;
 
+        // Active state on filter pills
+        $id('stat-available').classList.toggle('active', availFilter === 'available');
+        $id('stat-limited').classList.toggle('active', availFilter === 'limited');
+        $id('stat-full').classList.toggle('active', availFilter === 'full');
+
+        // Apply availFilter
+        let list = baseList;
+        if (availFilter === 'available') list = baseList.filter(cp => (parseInt(cp.AvailableLots) || 0) > 50);
+        else if (availFilter === 'limited') list = baseList.filter(cp => { const n = parseInt(cp.AvailableLots) || 0; return n >= 10 && n <= 50; });
+        else if (availFilter === 'full') list = baseList.filter(cp => (parseInt(cp.AvailableLots) || 0) < 10);
+
+        cardsGrid.innerHTML = '';
+
         if (list.length === 0) {
             emptyState.removeAttribute('hidden');
+            renderPagination(0, 0);
             return;
         }
         emptyState.setAttribute('hidden', '');
 
+        // Pagination
+        const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+        if (currentPage > totalPages) currentPage = totalPages;
+        const pageList = list.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
         // Build cards
         const frag = document.createDocumentFragment();
-        list.forEach(cp => {
+        pageList.forEach(cp => {
             const card = buildCard(cp);
             frag.appendChild(card);
         });
         cardsGrid.appendChild(frag);
 
+        renderPagination(currentPage, totalPages);
+
         // Update map if open
         if (mapOpen) {
             MapManager.setCarparks(list, userLat, userLng);
         }
+    }
+
+    function renderPagination(page, totalPages) {
+        const bar = $id('pagination-bar');
+        if (totalPages <= 1) {
+            bar.setAttribute('hidden', '');
+            return;
+        }
+        bar.removeAttribute('hidden');
+        bar.innerHTML = '';
+
+        const prev = document.createElement('button');
+        prev.className = 'page-btn';
+        prev.textContent = '←';
+        prev.disabled = page <= 1;
+        prev.addEventListener('click', () => { currentPage--; renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+        bar.appendChild(prev);
+
+        // Page number buttons (show up to 5 around current)
+        const start = Math.max(1, page - 2);
+        const end = Math.min(totalPages, start + 4);
+        for (let i = start; i <= end; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'page-btn' + (i === page ? ' active' : '');
+            btn.textContent = i;
+            const p = i;
+            btn.addEventListener('click', () => { currentPage = p; renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+            bar.appendChild(btn);
+        }
+
+        const next = document.createElement('button');
+        next.className = 'page-btn';
+        next.textContent = '→';
+        next.disabled = page >= totalPages;
+        next.addEventListener('click', () => { currentPage++; renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+        bar.appendChild(next);
     }
 
     function buildCard(cp) {
@@ -395,7 +452,17 @@
 
     // ── FILTERS ──
     [filterLotType, filterAgency, filterSort].forEach(el => {
-        el.addEventListener('change', renderAll);
+        el.addEventListener('change', () => { currentPage = 1; renderAll(); });
+    });
+
+    // ── AVAILABILITY FILTER PILLS ──
+    ['stat-available', 'stat-limited', 'stat-full'].forEach(id => {
+        const key = id.replace('stat-', '');
+        $id(id).addEventListener('click', () => {
+            availFilter = availFilter === key ? null : key;
+            currentPage = 1;
+            renderAll();
+        });
     });
 
     document.querySelectorAll('.chip').forEach(chip => {
@@ -403,6 +470,7 @@
             document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
             activeArea = chip.dataset.area;
+            currentPage = 1;
             renderAll();
         });
     });
