@@ -46,256 +46,248 @@
 </head>
 
 <body data-theme="classic">
-    <!-- Header -->
+    <!-- HEADER -->
     <header class="app-header glass">
         <div class="header-inner">
-            <div class="app-brand">
-                <span class="brand-icon">🅿️</span>
-                <span class="brand-name">SG Park n' Charge</span>
+            <div class="logo-group">
+                <span class="logo-icon">🅿️</span>
+                <div>
+                    <h1 class="app-title">SG Park n' Charge</h1>
+                    <p class="app-subtitle">Live carparks &amp; EV charging</p>
+                </div>
             </div>
             <div class="header-actions">
-                <button class="icon-btn" id="refresh-btn" title="Refresh data" aria-label="Refresh">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                        <path d="M1 4v6h6" />
-                        <path d="M23 20v-6h-6" />
-                        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" /></svg>
+                <button class="icon-btn" id="refreshBtn" title="Refresh data" aria-label="Refresh">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10" />
+                        <polyline points="1 20 1 14 7 14" />
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
                 </button>
-                <button class="icon-btn" id="theme-btn" title="Change theme" aria-label="Theme">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                        <circle cx="12" cy="12" r="3" />
-                        <path
-                            d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-                        </svg>
+                <button class="icon-btn" id="themeBtn" title="Change theme" aria-label="Theme picker">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 2a10 10 0 0 1 0 20" />
+                        <circle cx="12" cy="12" r="4" /></svg>
                 </button>
             </div>
+        </div>
+        <div class="update-bar">
+            <span id="updateText">Locating you…</span>
         </div>
     </header>
 
-    <!-- Location Banner -->
-    <div class="location-banner" id="location-banner">
-        <div class="location-banner-inner">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="10" r="3" />
-                <path d="M12 2a8 8 0 0 1 8 8c0 6-8 13-8 13S4 16 4 10a8 8 0 0 1 8-8z" /></svg>
-            <span id="location-text">Detecting your location…</span>
-            <span class="location-accuracy" id="location-accuracy"></span>
-        </div>
-    </div>
+    <!-- TABS -->
+    <nav class="tab-nav" role="tablist">
+        <button class="tab-btn active" role="tab" data-tab="carparks" aria-selected="true">🚗 Carparks</button>
+        <button class="tab-btn" role="tab" data-tab="ev" aria-selected="false">⚡ EV Charging</button>
+    </nav>
 
-    <!-- Main Content -->
-    <main class="app-main">
+    <!-- MAIN -->
+    <main class="main-content">
 
-        <!-- Map Container -->
-        <div class="map-wrapper" id="map-wrapper">
-            <div id="map"></div>
-            <div class="map-overlay-controls">
-                <button class="map-ctrl-btn glass" id="center-map-btn" title="Centre on my location">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M12 2v4M12 18v4M2 12h4M18 12h4" /></svg>
+        <!-- CARPARKS TAB -->
+        <section id="tab-carparks" class="tab-panel active" role="tabpanel">
+            <div class="controls-row glass">
+                <div class="search-wrap">
+                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                    <input type="text" id="cpSearch" class="search-input" placeholder="Search carpark name or area…"
+                        autocomplete="off" />
+                </div>
+                <div class="filter-chips">
+                    <span class="filter-label">Type:</span>
+                    <button class="chip active" data-filter="lot" data-value="all">All</button>
+                    <button class="chip" data-filter="lot" data-value="C">🚗 Cars</button>
+                    <button class="chip" data-filter="lot" data-value="Y">🏍 Moto</button>
+                    <button class="chip" data-filter="lot" data-value="H">🚛 Heavy</button>
+                    <span class="filter-label">Agency:</span>
+                    <button class="chip active" data-filter="agency" data-value="all">All</button>
+                    <button class="chip" data-filter="agency" data-value="HDB">HDB</button>
+                    <button class="chip" data-filter="agency" data-value="LTA">LTA</button>
+                    <button class="chip" data-filter="agency" data-value="URA">URA</button>
+                </div>
+            </div>
+
+            <div class="notice-banner">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                LTA carparks cover <strong>Orchard, Marina, HarbourFront &amp; Jurong Lake District</strong> only. HDB
+                &amp; URA cover the rest of Singapore.
+            </div>
+
+            <div class="action-bar">
+                <button class="map-toggle-btn" id="cpMapBtn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                        <line x1="8" y1="2" x2="8" y2="18" />
+                        <line x1="16" y1="6" x2="16" y2="22" /></svg>
+                    Show Map
                 </button>
-                <button class="map-ctrl-btn glass" id="toggle-view-btn" title="Toggle list view">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                        <line x1="8" y1="6" x2="21" y2="6" />
-                        <line x1="8" y1="12" x2="21" y2="12" />
-                        <line x1="8" y1="18" x2="21" y2="18" />
-                        <line x1="3" y1="6" x2="3.01" y2="6" />
-                        <line x1="3" y1="12" x2="3.01" y2="12" />
-                        <line x1="3" y1="18" x2="3.01" y2="18" /></svg>
-                </button>
-            </div>
-            <div class="last-updated glass" id="last-updated-badge">–</div>
-        </div>
-
-        <!-- Tab Bar -->
-        <nav class="tab-bar glass">
-            <button class="tab-btn active" data-tab="carparks">
-                <span class="tab-icon">🚗</span>
-                <span class="tab-label">Carparks</span>
-            </button>
-            <button class="tab-btn" data-tab="ev">
-                <span class="tab-icon">⚡</span>
-                <span class="tab-label">EV Charging</span>
-            </button>
-        </nav>
-
-        <!-- Carparks Panel -->
-        <section class="panel" id="panel-carparks">
-            <div class="panel-toolbar">
-                <div class="search-row">
-                    <div class="search-box glass">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8" />
-                            <path d="M21 21l-4.35-4.35" /></svg>
-                        <input type="text" id="carpark-search" placeholder="Search carpark or area…"
-                            autocomplete="off" />
-                    </div>
-                </div>
-                <div class="filter-row">
-                    <div class="filter-chips" id="lot-type-filter">
-                        <span class="filter-label">Type:</span>
-                        <button class="chip active" data-filter="all">All</button>
-                        <button class="chip" data-filter="C">🚗 Cars</button>
-                        <button class="chip" data-filter="Y">🏍️ Moto</button>
-                        <button class="chip" data-filter="H">🚛 Heavy</button>
-                    </div>
-                    <div class="filter-chips" id="agency-filter">
-                        <span class="filter-label">Agency:</span>
-                        <button class="chip active" data-filter="all">All</button>
-                        <button class="chip" data-filter="HDB">HDB</button>
-                        <button class="chip" data-filter="LTA">LTA</button>
-                        <button class="chip" data-filter="URA">URA</button>
-                    </div>
-                </div>
-                <div class="coverage-note glass" id="lta-coverage-note" style="display:none">
-                    ℹ️ <strong>LTA carparks</strong> only cover Orchard, Marina, HarbourFront &amp; Jurong Lake
-                    District. HDB/URA carparks are shown island-wide.
-                </div>
+                <span id="cpCount" class="result-count"></span>
             </div>
 
-            <div class="results-count" id="carpark-count">Loading…</div>
-
-            <div class="list-panel" id="carpark-list">
-                <div class="loading-state">
-                    <div class="spinner"></div>
-                    <p>Fetching carpark data…</p>
-                </div>
+            <div id="cpLoading" class="loader-wrap">
+                <div class="spinner"></div>
+                <p>Fetching carpark data…</p>
             </div>
+            <div id="cpError" class="error-banner hidden"></div>
+            <div id="cpCards" class="cards-grid"></div>
+            <p id="cpEmpty" class="empty-msg hidden">No carparks match your filters.</p>
         </section>
 
-        <!-- EV Charging Panel -->
-        <section class="panel hidden" id="panel-ev">
-            <div class="panel-toolbar">
-                <div class="search-row">
-                    <div class="search-box glass">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8" />
-                            <path d="M21 21l-4.35-4.35" /></svg>
-                        <input type="text" id="ev-postal-input" placeholder="Enter postal code or address…"
-                            autocomplete="off" inputmode="numeric" />
-                    </div>
-                    <button class="icon-btn glass" id="ev-locate-btn" title="Use my location">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                            <circle cx="12" cy="10" r="3" />
-                            <path d="M12 2a8 8 0 0 1 8 8c0 6-8 13-8 13S4 16 4 10a8 8 0 0 1 8-8z" /></svg>
-                    </button>
-                    <button class="search-btn glass" id="ev-search-btn">Search</button>
+        <!-- EV TAB -->
+        <section id="tab-ev" class="tab-panel" role="tabpanel">
+            <div class="controls-row glass">
+                <div class="search-wrap">
+                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                    <input type="text" id="evPostal" class="search-input" placeholder="Enter 6-digit postal code…"
+                        maxlength="6" inputmode="numeric" />
                 </div>
-                <div class="ev-status-filter filter-chips">
-                    <span class="filter-label">Show:</span>
-                    <button class="chip active" data-ev-filter="available">✅ Available</button>
-                    <button class="chip active" data-ev-filter="occupied">🔴 Occupied</button>
-                </div>
+                <button class="btn-primary" id="evSearch">Search</button>
+                <button class="btn-secondary" id="evLocate">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>
+                    My Location
+                </button>
             </div>
 
-            <div class="results-count" id="ev-count">Enter a postal code or use your location to search</div>
-
-            <div class="list-panel" id="ev-list">
-                <div class="empty-state">
-                    <div class="empty-icon">⚡</div>
-                    <p>Search for EV charging points near you</p>
-                </div>
+            <div class="action-bar">
+                <button class="map-toggle-btn" id="evMapBtn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                        <line x1="8" y1="2" x2="8" y2="18" />
+                        <line x1="16" y1="6" x2="16" y2="22" /></svg>
+                    Show Map
+                </button>
             </div>
+
+            <div id="evLoading" class="loader-wrap hidden">
+                <div class="spinner"></div>
+                <p>Fetching EV charging data…</p>
+            </div>
+            <div id="evError" class="error-banner hidden"></div>
+            <div id="evPrompt" class="empty-msg">Enter a postal code or tap <strong>My Location</strong> to find EV
+                chargers nearby.</div>
+            <div id="evCards" class="cards-grid"></div>
         </section>
 
     </main>
 
-    <!-- Bottom Sheet (detail panel) -->
-    <div class="bottom-sheet-backdrop" id="sheet-backdrop"></div>
-    <div class="bottom-sheet glass" id="bottom-sheet">
-        <div class="sheet-handle"></div>
-        <div class="sheet-content" id="sheet-content"></div>
+    <!-- MAP MODAL -->
+    <div id="mapModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Map">
+        <div class="modal-box map-modal-box">
+            <div class="modal-header">
+                <h2 id="mapModalTitle">Map</h2>
+                <button class="icon-btn" id="closeMapModal" aria-label="Close map">✕</button>
+            </div>
+            <div id="mapContainer"></div>
+        </div>
     </div>
 
-    <!-- Map Navigation Modal -->
-    <div class="modal-backdrop" id="nav-modal-backdrop"></div>
-    <div class="modal glass" id="nav-modal">
-        <div class="modal-header">
-            <h3>Open Navigation</h3>
-            <button class="icon-btn" id="close-nav-modal">✕</button>
-        </div>
-        <div class="modal-body">
-            <p class="modal-desc" id="nav-modal-desc"></p>
-            <div class="nav-options" id="nav-options">
-                <button class="nav-opt-btn glass" data-nav="google">
-                    <span class="nav-icon">🗺️</span> Google Maps
+    <!-- THEME MODAL -->
+    <div id="themeModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Theme picker">
+        <div class="modal-box theme-modal-box glass">
+            <div class="modal-header">
+                <h2>Choose Theme</h2>
+                <button class="icon-btn" id="closeThemeModal" aria-label="Close">✕</button>
+            </div>
+            <div class="theme-grid">
+                <button class="theme-swatch active" data-theme="classic">
+                    <span class="swatch-dot" style="background:#ccffcc"></span>
+                    <div class="swatch-info"><span>Classic</span><span class="swatch-hex">#ccffcc</span></div>
                 </button>
-                <button class="nav-opt-btn glass" data-nav="waze">
-                    <span class="nav-icon">🚗</span> Waze
+                <button class="theme-swatch" data-theme="ng1">
+                    <span class="swatch-dot" style="background:#ffcccc"></span>
+                    <div class="swatch-info"><span>Not green 1</span><span class="swatch-hex">#ffcccc</span></div>
                 </button>
-                <button class="nav-opt-btn glass" data-nav="apple">
-                    <span class="nav-icon">🍎</span> Apple Maps
+                <button class="theme-swatch" data-theme="ng2">
+                    <span class="swatch-dot" style="background:#ccccff"></span>
+                    <div class="swatch-info"><span>Not green 2</span><span class="swatch-hex">#ccccff</span></div>
                 </button>
-                <button class="nav-opt-btn glass" data-nav="osm">
-                    <span class="nav-icon">🌍</span> OpenStreetMap
+                <button class="theme-swatch" data-theme="ng3">
+                    <span class="swatch-dot" style="background:#ffffcc"></span>
+                    <div class="swatch-info"><span>Not green 3</span><span class="swatch-hex">#ffffcc</span></div>
+                </button>
+                <button class="theme-swatch" data-theme="ng4">
+                    <span class="swatch-dot" style="background:#ffccff"></span>
+                    <div class="swatch-info"><span>Not green 4</span><span class="swatch-hex">#ffccff</span></div>
+                </button>
+                <button class="theme-swatch" data-theme="ng5">
+                    <span class="swatch-dot" style="background:#ccffff"></span>
+                    <div class="swatch-info"><span>Not green 5</span><span class="swatch-hex">#ccffff</span></div>
+                </button>
+                <button class="theme-swatch" data-theme="white">
+                    <span class="swatch-dot" style="background:#ffffff;border:1px solid #ddd"></span>
+                    <div class="swatch-info"><span>Really really light green</span><span
+                            class="swatch-hex">#ffffff</span></div>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Theme Modal -->
-    <div class="modal-backdrop" id="theme-modal-backdrop"></div>
-    <div class="modal glass" id="theme-modal">
-        <div class="modal-header">
-            <h3>Choose Theme</h3>
-            <button class="icon-btn" id="close-theme-modal">✕</button>
-        </div>
-        <div class="modal-body">
-            <div class="theme-grid" id="theme-grid">
-                <button class="theme-swatch active" data-theme="classic" style="--swatch:#ccffcc">
-                    <div class="swatch-color"></div>
-                    <span>Classic</span>
-                </button>
-                <button class="theme-swatch" data-theme="not-green-1" style="--swatch:#ffcccc">
-                    <div class="swatch-color"></div>
-                    <span>Not Green 1</span>
-                </button>
-                <button class="theme-swatch" data-theme="not-green-2" style="--swatch:#ccccff">
-                    <div class="swatch-color"></div>
-                    <span>Not Green 2</span>
-                </button>
-                <button class="theme-swatch" data-theme="not-green-3" style="--swatch:#ffffcc">
-                    <div class="swatch-color"></div>
-                    <span>Not Green 3</span>
-                </button>
-                <button class="theme-swatch" data-theme="not-green-4" style="--swatch:#ffccff">
-                    <div class="swatch-color"></div>
-                    <span>Not Green 4</span>
-                </button>
-                <button class="theme-swatch" data-theme="not-green-5" style="--swatch:#ccffff">
-                    <div class="swatch-color"></div>
-                    <span>Not Green 5</span>
-                </button>
-                <button class="theme-swatch" data-theme="really-light" style="--swatch:#ffffff">
-                    <div class="swatch-color"></div>
-                    <span>Really Light</span>
+    <!-- NAVIGATE MODAL -->
+    <div id="navModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Navigate">
+        <div class="modal-box nav-modal-box glass">
+            <div class="modal-header">
+                <h2>Navigate to</h2>
+                <button class="icon-btn" id="closeNavModal" aria-label="Close">✕</button>
+            </div>
+            <p id="navModalName" class="nav-dest-name"></p>
+            <div class="nav-options">
+                <a id="navGoogleMaps" class="nav-app-btn" target="_blank" rel="noopener noreferrer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#4285F4">
+                        <path
+                            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                        </svg>
+                    Google Maps
+                </a>
+                <a id="navWaze" class="nav-app-btn" target="_blank" rel="noopener noreferrer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#33CCFF">
+                        <circle cx="12" cy="11" r="9" />
+                        <circle cx="9" cy="10" r="1.5" fill="white" />
+                        <circle cx="15" cy="10" r="1.5" fill="white" />
+                        <path d="M9 14 Q12 17 15 14" stroke="white" stroke-width="1.5" fill="none"
+                            stroke-linecap="round" /></svg>
+                    Waze
+                </a>
+                <a id="navAppleMaps" class="nav-app-btn" target="_blank" rel="noopener noreferrer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#FF3B30">
+                        <path
+                            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                        </svg>
+                    Apple Maps
+                </a>
+                <button class="nav-app-btn" id="navOpenMap">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                        <line x1="8" y1="2" x2="8" y2="18" />
+                        <line x1="16" y1="6" x2="16" y2="22" /></svg>
+                    In-app Map
                 </button>
             </div>
         </div>
-    </div>
-
-    <!-- Map Modal -->
-    <div class="modal-backdrop" id="map-modal-backdrop"></div>
-    <div class="modal modal-map glass" id="map-modal">
-        <div class="modal-header">
-            <h3 id="map-modal-title">Map</h3>
-            <button class="icon-btn" id="close-map-modal">✕</button>
-        </div>
-        <div id="map-modal-map"></div>
-    </div>
-
-    <!-- PWA Install Banner -->
-    <div class="install-banner glass" id="install-banner" style="display:none">
-        <span>📲 Add SG Park n' Charge to your home screen!</span>
-        <button class="chip" id="install-btn">Install</button>
-        <button class="icon-btn" id="dismiss-install">✕</button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-    
+
     <script src="/theme.js"></script>
     <script src="/map.js"></script>
     <script src="/carparks.js"></script>

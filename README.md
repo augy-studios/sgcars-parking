@@ -1,4 +1,4 @@
-# SG Park n' Charge 🅿️⚡
+# SG Park n' Charge
 
 Real-time Singapore carpark availability and EV charging points at your fingertips!
 
@@ -6,17 +6,33 @@ Real-time Singapore carpark availability and EV charging points at your fingerti
 
 ## Features
 
-- 🚗 **Carparks tab** — live availability from HDB, LTA, URA; sort by nearest, filter by lot type and agency; auto-refresh every 1 minute
-- ⚡ **EV Charging tab** — search by postal code or auto-detect from GPS; availability status per charger point; auto-refresh every 5 minutes
-- 🗺️ **Map view** — OpenStreetMap with clustered pins, different colours per availability state
-- 🧭 **Navigate** — open in Google Maps, Waze, Apple Maps, or OpenStreetMap
-- 🎨 **7 themes** — Classic (#ccffcc), Not Green 1–5, Really Light
-- 📲 **PWA** — installable, offline-capable (static assets + tile cache)
+- 🚗 **Carparks tab** — All HDB, LTA, and URA carparks sorted by distance from your GPS location
+  - Filter by lot type (Cars / Motorcycles / Heavy Vehicles)
+  - Filter by agency (HDB / LTA / URA)
+  - Search by name or area
+  - Auto-refresh every 1 minute
+  - Colour-coded availability (green/amber/red)
+
+- ⚡ **EV Charging tab** — EV chargers by postal code
+  - Auto-detect postal code from GPS via Nominatim reverse geocode
+  - Shows available stations only (hides status 100)
+  - Expandable charger detail (plug type, speed, price, individual point status)
+  - Auto-refresh every 5 minutes
+
+- 🗺️ **Map** — Leaflet + OpenStreetMap with MarkerCluster
+  - Different icons for carparks (🅿️) and EV chargers (⚡)
+  - Tap marker → popup with Navigate button
+
+- 🧭 **Navigation** — Google Maps, Waze, Apple Maps, or in-app map
+
+- 🎨 **7 Themes** — Classic, Not green 1-5, Really really light green
+
+- 📱 **PWA** — Installable, offline shell, service worker
 
 ---
 
-## LTA Coverage Notes
+## LTA API Coverage Notes
 
-- **LTA carparks** only cover major developments in Orchard, Marina, HarbourFront, and Jurong Lake District. This is noted in the app UI.
-- **HDB and URA carparks** are available island-wide.
-- **EV charging** data is queried by postal code. The app auto-detects your postal code via reverse geocoding (Nominatim/OpenStreetMap).
+- **CarPark API** updates every 1 minute. Covers HDB, URA, and LTA carparks.
+- **LTA carparks only** cover Orchard, Marina, HarbourFront, and Jurong Lake District.
+- **EV API** updates every 5 minutes and requires a postal code.

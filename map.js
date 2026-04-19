@@ -1,291 +1,241 @@
-// ===== MAP MANAGER =====
 const MapManager = (() => {
-    let map = null;
-    let modalMap = null;
-    let userMarker = null;
-    let carparkLayer = null;
-    let evLayer = null;
-    let userLat = null;
-    let userLng = null;
-
-    // Pending nav target
-    let navTarget = null;
-
-    function createPinIcon(type, colorClass = '') {
-        const colors = {
-            carpark: {
-                green: '#22c55e',
-                amber: '#f59e0b',
-                red: '#ef4444',
-                grey: '#94a3b8'
-            },
-            ev: '#3b82f6',
-            user: '#8b5cf6',
-        };
-
-        if (type === 'user') {
-            return L.divIcon({
-                className: '',
-                html: `<div style="width:18px;height:18px;border-radius:50%;background:#8b5cf6;border:3px solid #fff;box-shadow:0 2px 8px rgba(139,92,246,0.5)"></div>`,
-                iconSize: [18, 18],
-                iconAnchor: [9, 9],
-            });
-        }
-
-        const bg = type === 'ev' ?
-            colors.ev :
-            ({
-                green: colors.carpark.green,
-                amber: colors.carpark.amber,
-                red: colors.carpark.red,
-                grey: colors.carpark.grey
-            } [colorClass] || colors.carpark.green);
-
-        const emoji = type === 'ev' ? '⚡' : '🅿';
-
-        return L.divIcon({
-            className: '',
-            html: `<div style="width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${bg};border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center">
-               <span style="transform:rotate(45deg);font-size:13px;line-height:1">${emoji}</span>
-             </div>`,
-            iconSize: [30, 30],
-            iconAnchor: [15, 30],
-            popupAnchor: [0, -32],
-        });
-    }
+    let leafletMap = null;
+    let clusterGroup = null;
 
     function initMap() {
-        map = L.map('map', {
-            center: [1.3521, 103.8198],
-            zoom: 13,
-            zoomControl: false,
-            attributionControl: false,
-        });
-
+        if (leafletMap) return;
+        leafletMap = L.map('mapContainer').setView([1.3521, 103.8198], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19,
-        }).addTo(map);
-
-        L.control.attribution({
-            position: 'bottomright',
-            prefix: '© OpenStreetMap'
-        }).addTo(map);
-
-        carparkLayer = L.markerClusterGroup({
-            chunkedLoading: true,
-            maxClusterRadius: 50,
-            iconCreateFunction: cluster => L.divIcon({
-                html: `<div style="width:36px;height:36px;border-radius:50%;background:rgba(34,197,94,0.85);border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;box-shadow:0 3px 10px rgba(0,0,0,0.2)">${cluster.getChildCount()}</div>`,
-                className: '',
-                iconSize: [36, 36],
-                iconAnchor: [18, 18],
-            }),
+        }).addTo(leafletMap);
+        clusterGroup = L.markerClusterGroup({
+            chunkedLoading: true
         });
-        evLayer = L.markerClusterGroup({
-            chunkedLoading: true,
-            maxClusterRadius: 50,
-            iconCreateFunction: cluster => L.divIcon({
-                html: `<div style="width:36px;height:36px;border-radius:50%;background:rgba(59,130,246,0.85);border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;box-shadow:0 3px 10px rgba(0,0,0,0.2)">${cluster.getChildCount()}</div>`,
-                className: '',
-                iconSize: [36, 36],
-                iconAnchor: [18, 18],
-            }),
-        });
-
-        map.addLayer(carparkLayer);
-        map.addLayer(evLayer);
-
-        // Center button
-        document.getElementById('center-map-btn')?.addEventListener('click', () => {
-            if (userLat && userLng) {
-                map.flyTo([userLat, userLng], 15, {
-                    duration: 0.8
-                });
-            }
-        });
-
-        return map;
+        leafletMap.addLayer(clusterGroup);
     }
 
-    function setUserLocation(lat, lng) {
-        userLat = lat;
-        userLng = lng;
-        if (!map) return;
-        if (userMarker) userMarker.remove();
-        userMarker = L.marker([lat, lng], {
-                icon: createPinIcon('user'),
-                zIndexOffset: 1000
-            })
-            .bindPopup('<div class="popup-title">📍 You are here</div>')
-            .addTo(map);
-        map.flyTo([lat, lng], 14, {
-            duration: 1
+    function openModal(title) {
+        document.getElementById('mapModalTitle').textContent = title;
+        document.getElementById('mapModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => {
+            if (leafletMap) leafletMap.invalidateSize();
+        }, 150);
+    }
+
+    function closeModal() {
+        document.getElementById('mapModal').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    function clearMarkers() {
+        if (clusterGroup) clusterGroup.clearLayers();
+    }
+
+    function carparkIcon(color) {
+        return L.divIcon({
+            className: '',
+            html: `<div style="
+        width:32px;height:32px;border-radius:50% 50% 50% 0;
+        background:${color};border:2.5px solid white;
+        box-shadow:0 2px 6px rgba(0,0,0,0.3);
+        display:flex;align-items:center;justify-content:center;
+        font-size:14px;transform:rotate(-45deg)
+      "><span style="transform:rotate(45deg)">🅿️</span></div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -36],
         });
     }
 
-    function addCarparkMarker(cp, colorClass, popupHtml) {
-        if (!cp.Location) return;
-        const [lat, lng] = cp.Location.split(' ').map(Number);
-        if (!lat || !lng) return;
-        const marker = L.marker([lat, lng], {
-            icon: createPinIcon('carpark', colorClass)
+    function evIcon(status) {
+        const color = status === 1 ? '#22c55e' : status === 0 ? '#ef4444' : '#94a3b8';
+        return L.divIcon({
+            className: '',
+            html: `<div style="
+        width:32px;height:32px;border-radius:50%;
+        background:${color};border:2.5px solid white;
+        box-shadow:0 2px 6px rgba(0,0,0,0.3);
+        display:flex;align-items:center;justify-content:center;
+        font-size:16px;
+      ">⚡</div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+            popupAnchor: [0, -20],
         });
-        marker.bindPopup(popupHtml);
-        carparkLayer.addLayer(marker);
-        return marker;
     }
 
-    function addEVMarker(station, popupHtml) {
-        if (!station.latitude || !station.longtitude) return;
-        const marker = L.marker(
-            [parseFloat(station.latitude), parseFloat(station.longtitude)], {
-                icon: createPinIcon('ev')
-            }
-        );
-        marker.bindPopup(popupHtml);
-        evLayer.addLayer(marker);
-        return marker;
-    }
+    function showCarparks(carparks, userLat, userLng) {
+        if (!leafletMap) initMap();
+        clearMarkers();
 
-    function clearCarparks() {
-        carparkLayer?.clearLayers();
-    }
+        carparks.forEach(cp => {
+            if (!cp.Location) return;
+            const [lat, lng] = cp.Location.split(' ').map(Number);
+            if (isNaN(lat) || isNaN(lng)) return;
 
-    function clearEV() {
-        evLayer?.clearLayers();
-    }
+            const avail = parseInt(cp.AvailableLots) || 0;
+            const color = avail > 20 ? '#22c55e' : avail > 5 ? '#f59e0b' : '#ef4444';
 
-    // Navigation modal
-    function showNavModal(lat, lng, label) {
-        navTarget = {
-            lat,
-            lng,
-            label
-        };
-        document.getElementById('nav-modal-desc').textContent = `Navigate to: ${label}`;
-        document.getElementById('nav-modal-backdrop').classList.add('show');
-        document.getElementById('nav-modal').classList.add('show');
-    }
-
-    function initNavModal() {
-        const backdrop = document.getElementById('nav-modal-backdrop');
-        const modal = document.getElementById('nav-modal');
-        const closeBtn = document.getElementById('close-nav-modal');
-
-        function closeModal() {
-            backdrop.classList.remove('show');
-            modal.classList.remove('show');
-        }
-        backdrop?.addEventListener('click', closeModal);
-        closeBtn?.addEventListener('click', closeModal);
-
-        document.querySelectorAll('[data-nav]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (!navTarget) return;
-                const {
-                    lat,
-                    lng,
-                    label
-                } = navTarget;
-                const enc = encodeURIComponent(label);
-                const urls = {
-                    google: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`,
-                    waze: `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`,
-                    apple: `maps://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`,
-                    osm: `https://www.openstreetmap.org/directions?from=&to=${lat},${lng}#map=16/${lat}/${lng}`,
-                };
-                window.open(urls[btn.dataset.nav], '_blank');
-                closeModal();
+            const marker = L.marker([lat, lng], {
+                icon: carparkIcon(color)
             });
+            const cpName = cp.Development || cp.CarParkID;
+            const popupEl = document.createElement('div');
+            popupEl.style.cssText = "font-family:'Nunito',sans-serif;min-width:180px";
+            popupEl.innerHTML = `
+        <strong style="font-family:'Jua',sans-serif;font-size:0.95rem">${cpName}</strong>
+        <br><span style="font-size:0.8rem;color:#666">${cp.Area || cp.Agency}</span>
+        <br><br>
+        <span style="font-size:1.2rem;font-weight:700;color:${color}">${avail}</span>
+        <span style="font-size:0.8rem;color:#666"> lots available (${cp.LotType})</span>
+        <br><br>
+        <button class="popup-nav-btn" style="width:100%;padding:6px;border-radius:6px;border:none;background:var(--brand,#ccffcc);cursor:pointer;font-weight:700;font-family:'Nunito',sans-serif">
+          🧭 Navigate
+        </button>
+      `;
+            popupEl.querySelector('.popup-nav-btn').addEventListener('click', () => {
+                NavManager.open(cpName, lat, lng);
+            });
+            marker.bindPopup(popupEl);
+            clusterGroup.addLayer(marker);
         });
-    }
 
-    // Map modal (full screen map)
-    function openMapModal(lat, lng, title) {
-        const backdrop = document.getElementById('map-modal-backdrop');
-        const modal = document.getElementById('map-modal');
-        document.getElementById('map-modal-title').textContent = title || 'Map';
-        backdrop.classList.add('show');
-        modal.classList.add('show');
-
-        if (!modalMap) {
-            modalMap = L.map('map-modal-map', {
-                center: [lat, lng],
-                zoom: 16,
-                zoomControl: true,
-                attributionControl: false,
-            });
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19
-            }).addTo(modalMap);
-            L.control.attribution({
-                prefix: '© OpenStreetMap'
-            }).addTo(modalMap);
-        } else {
-            modalMap.flyTo([lat, lng], 16, {
-                duration: 0.6
-            });
-        }
-
-        L.marker([lat, lng], {
-            icon: createPinIcon('carpark', 'green')
-        }).addTo(modalMap);
         if (userLat && userLng) {
-            L.marker([userLat, userLng], {
-                icon: createPinIcon('user')
-            }).addTo(modalMap);
+            L.circleMarker([userLat, userLng], {
+                radius: 10,
+                color: '#3b82f6',
+                fillColor: '#93c5fd',
+                fillOpacity: 0.8,
+                weight: 2,
+            }).addTo(leafletMap).bindPopup('📍 Your location');
+            leafletMap.setView([userLat, userLng], 14);
+        } else if (carparks.length) {
+            leafletMap.fitBounds(clusterGroup.getBounds(), {
+                padding: [30, 30]
+            });
         }
 
-        setTimeout(() => modalMap.invalidateSize(), 100);
+        openModal('🚗 Carparks Map');
     }
 
-    function initMapModal() {
-        const backdrop = document.getElementById('map-modal-backdrop');
-        const modal = document.getElementById('map-modal');
-        const closeBtn = document.getElementById('close-map-modal');
+    function showEV(stations) {
+        if (!leafletMap) initMap();
+        clearMarkers();
 
-        function closeModal() {
-            backdrop.classList.remove('show');
-            modal.classList.remove('show');
+        stations.forEach(st => {
+            const lat = parseFloat(st.latitude);
+            const lng = parseFloat(st.longtitude);
+            if (isNaN(lat) || isNaN(lng)) return;
+
+            const statusVal = st.status;
+            const marker = L.marker([lat, lng], {
+                icon: evIcon(statusVal)
+            });
+            const stName = st.name;
+            const statusLabel = statusVal === 1 ? '✅ Available' : statusVal === 0 ? '🔴 Occupied' : '⚫ Unavailable';
+
+            const popupEl = document.createElement('div');
+            popupEl.style.cssText = "font-family:'Nunito',sans-serif;min-width:180px";
+            popupEl.innerHTML = `
+        <strong style="font-family:'Jua',sans-serif;font-size:0.95rem">${stName}</strong>
+        <br><span style="font-size:0.78rem;color:#666">${st.address}</span>
+        <br><br>
+        <span style="font-size:0.85rem">${statusLabel}</span>
+        <br><br>
+        <button class="popup-nav-btn" style="width:100%;padding:6px;border-radius:6px;border:none;background:var(--brand,#ccffcc);cursor:pointer;font-weight:700;font-family:'Nunito',sans-serif">
+          🧭 Navigate
+        </button>
+      `;
+            popupEl.querySelector('.popup-nav-btn').addEventListener('click', () => {
+                NavManager.open(stName, lat, lng);
+            });
+            marker.bindPopup(popupEl);
+            clusterGroup.addLayer(marker);
+        });
+
+        if (stations.length) {
+            try {
+                leafletMap.fitBounds(clusterGroup.getBounds(), {
+                    padding: [40, 40]
+                });
+            } catch (e) {
+                leafletMap.setView([1.3521, 103.8198], 12);
+            }
         }
-        backdrop?.addEventListener('click', closeModal);
-        closeBtn?.addEventListener('click', closeModal);
+
+        openModal('⚡ EV Charging Map');
     }
 
-    function getDistance(lat1, lng1, lat2, lng2) {
-        const R = 6371000;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLng = (lng2 - lng1) * Math.PI / 180;
-        const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    function focusPoint(lat, lng, label) {
+        if (!leafletMap) initMap();
+        openModal(label);
+        setTimeout(() => {
+            leafletMap.setView([lat, lng], 17);
+            leafletMap.invalidateSize();
+        }, 200);
     }
 
-    function formatDistance(m) {
-        return m < 1000 ? `${Math.round(m)}m` : `${(m/1000).toFixed(1)}km`;
+    function init() {
+        document.getElementById('closeMapModal')?.addEventListener('click', closeModal);
+        document.getElementById('mapModal')?.addEventListener('click', e => {
+            if (e.target.id === 'mapModal') closeModal();
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
 
     return {
-        initMap,
-        setUserLocation,
-        addCarparkMarker,
-        addEVMarker,
-        clearCarparks,
-        clearEV,
-        showNavModal,
-        initNavModal,
-        openMapModal,
-        initMapModal,
-        getDistance,
-        formatDistance,
-        get map() {
-            return map;
-        },
-        get userLat() {
-            return userLat;
-        },
-        get userLng() {
-            return userLng;
-        },
+        showCarparks,
+        showEV,
+        focusPoint,
+        initMap
+    };
+})();
+
+/* ── Navigate Manager ── */
+const NavManager = (() => {
+    let _lat, _lng, _name;
+
+    function open(name, lat, lng) {
+        _name = name;
+        _lat = lat;
+        _lng = lng;
+        document.getElementById('navModalName').textContent = name;
+        document.getElementById('navGoogleMaps').href =
+            `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+        document.getElementById('navWaze').href =
+            `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+        document.getElementById('navAppleMaps').href =
+            `https://maps.apple.com/?daddr=${lat},${lng}`;
+        document.getElementById('navModal').classList.remove('hidden');
+    }
+
+    function init() {
+        document.getElementById('closeNavModal')?.addEventListener('click', () => {
+            document.getElementById('navModal').classList.add('hidden');
+        });
+        document.getElementById('navModal')?.addEventListener('click', e => {
+            if (e.target.id === 'navModal') document.getElementById('navModal').classList.add('hidden');
+        });
+        document.getElementById('navOpenMap')?.addEventListener('click', () => {
+            document.getElementById('navModal').classList.add('hidden');
+            if (_lat && _lng) MapManager.focusPoint(_lat, _lng, _name);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    return {
+        open
     };
 })();

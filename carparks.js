@@ -1,328 +1,246 @@
-// ===== CARPARKS MODULE =====
 const CarparkManager = (() => {
     let allData = [];
-    let filtered = [];
-    let lotTypeFilter = 'all';
-    let agencyFilter = 'all';
+    let userLat = null;
+    let userLng = null;
+    let filterLot = 'all';
+    let filterAgency = 'all';
     let searchQuery = '';
-    let lastUpdated = null;
     let refreshTimer = null;
+    let lastFetch = null;
 
-    function availClass(lots) {
-        if (lots === null || lots === undefined) return 'grey';
-        if (lots > 50) return 'green';
-        if (lots > 10) return 'amber';
-        if (lots > 0) return 'red';
+    // ── Helpers ──────────────────────────────────────────
+    function haversine(lat1, lon1, lat2, lon2) {
+        const R = 6371e3;
+        const φ1 = lat1 * Math.PI / 180,
+            φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function formatDist(m) {
+        return m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(1)}km`;
+    }
+
+    function availColor(n) {
+        if (n > 20) return '#22c55e';
+        if (n > 5) return '#f59e0b';
+        return '#ef4444';
+    }
+
+    function availClass(n) {
+        if (n > 20) return 'green';
+        if (n > 5) return 'amber';
         return 'red';
     }
 
-    function badgeClass(lots) {
-        if (lots === null || lots === undefined) return 'badge-grey';
-        if (lots > 50) return 'badge-green';
-        if (lots > 10) return 'badge-amber';
-        return 'badge-red';
-    }
-
-    function groupByCarpark(raw) {
-        const map = {};
-        for (const item of raw) {
-            const id = item.CarParkID;
-            if (!map[id]) {
-                map[id] = {
-                    CarParkID: item.CarParkID,
-                    Area: item.Area,
-                    Development: item.Development,
-                    Location: item.Location,
-                    Agency: item.Agency,
-                    lots: [],
-                };
-            }
-            map[id].lots.push({
-                type: item.LotType,
-                available: item.AvailableLots
-            });
-        }
-        return Object.values(map);
-    }
-
-    function getCoords(cp) {
-        if (!cp.Location) return null;
-        const parts = cp.Location.trim().split(/\s+/);
-        if (parts.length < 2) return null;
-        return {
-            lat: parseFloat(parts[0]),
-            lng: parseFloat(parts[1])
-        };
-    }
-
+    // ── Fetch ─────────────────────────────────────────────
     async function fetchData() {
         try {
-            const resp = await fetch('/api/carparks');
-            if (!resp.ok) throw new Error('API error');
-            const json = await resp.json();
-            allData = groupByCarpark(json.value || []);
-            lastUpdated = new Date();
-            updateLastUpdatedBadge();
-            applyFilters();
-            renderMap();
-        } catch (e) {
-            console.error('Carpark fetch failed', e);
-            setListHTML(`<div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load carpark data. Please try again.</p></div>`);
+            const res = await fetch('/api/carparks');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            return json.value || [];
+        } catch (err) {
+            throw err;
         }
     }
 
-    function applyFilters() {
-        let data = [...allData];
+    // ── Filter & Sort ─────────────────────────────────────
+    function getFiltered() {
+        let data = allData;
 
-        // Search
+        if (filterLot !== 'all') data = data.filter(d => d.LotType === filterLot);
+        if (filterAgency !== 'all') data = data.filter(d => d.Agency === filterAgency);
+
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
-            data = data.filter(cp =>
-                (cp.Development || '').toLowerCase().includes(q) ||
-                (cp.Area || '').toLowerCase().includes(q) ||
-                (cp.CarParkID || '').toLowerCase().includes(q)
+            data = data.filter(d =>
+                (d.Development || '').toLowerCase().includes(q) ||
+                (d.Area || '').toLowerCase().includes(q) ||
+                (d.CarParkID || '').toLowerCase().includes(q)
             );
         }
 
-        // Lot type
-        if (lotTypeFilter !== 'all') {
-            data = data.filter(cp => cp.lots.some(l => l.type === lotTypeFilter));
-        }
-
-        // Agency
-        if (agencyFilter !== 'all') {
-            data = data.filter(cp => cp.Agency === agencyFilter);
-        }
-
-        // Show LTA coverage note
-        const note = document.getElementById('lta-coverage-note');
-        if (note) note.style.display = (agencyFilter === 'all' || agencyFilter === 'LTA') ? 'block' : 'none';
-
-        // Sort by distance if we have user location
-        const uLat = MapManager.userLat;
-        const uLng = MapManager.userLng;
-        if (uLat && uLng) {
-            data = data.map(cp => {
-                const coords = getCoords(cp);
-                const dist = coords ? MapManager.getDistance(uLat, uLng, coords.lat, coords.lng) : Infinity;
+        if (userLat && userLng) {
+            data = data.map(d => {
+                if (!d.Location) return {
+                    ...d,
+                    _dist: Infinity
+                };
+                const [lat, lng] = d.Location.split(' ').map(Number);
                 return {
-                    ...cp,
-                    _dist: dist
+                    ...d,
+                    _lat: lat,
+                    _lng: lng,
+                    _dist: haversine(userLat, userLng, lat, lng)
                 };
             }).sort((a, b) => a._dist - b._dist);
         }
 
-        filtered = data;
-        renderList();
+        return data;
     }
 
-    function renderList() {
-        const el = document.getElementById('carpark-list');
-        const count = document.getElementById('carpark-count');
-        if (!el) return;
+    // ── Render ────────────────────────────────────────────
+    function render(data) {
+        const container = document.getElementById('cpCards');
+        const empty = document.getElementById('cpEmpty');
+        const countEl = document.getElementById('cpCount');
 
-        if (!filtered.length) {
-            count.textContent = '0 results';
-            setListHTML(`<div class="empty-state"><div class="empty-icon">🅿️</div><p>No carparks found matching your filters.</p></div>`);
+        if (!data.length) {
+            container.innerHTML = '';
+            empty.classList.remove('hidden');
+            countEl.textContent = '';
             return;
         }
 
-        count.textContent = `${filtered.length} carpark${filtered.length !== 1 ? 's' : ''} found`;
+        empty.classList.add('hidden');
+        countEl.textContent = `${data.length} carpark${data.length !== 1 ? 's' : ''}`;
 
-        // Render only first 80 for perf
-        const toRender = filtered.slice(0, 80);
-        el.innerHTML = toRender.map(cp => cardHTML(cp)).join('');
+        container.innerHTML = data.map(cp => {
+            const avail = parseInt(cp.AvailableLots) || 0;
+            const color = availColor(avail);
+            const cls = availClass(avail);
+            const dist = cp._dist !== undefined && cp._dist !== Infinity ?
+                `<span class="cp-distance">📍 ${formatDist(cp._dist)} away</span> · ` : '';
+            const area = cp.Area ? `${cp.Area} · ` : '';
+            const lot = cp.LotType === 'C' ? '🚗 Cars' : cp.LotType === 'Y' ? '🏍 Motorcycles' : cp.LotType === 'H' ? '🚛 Heavy' : cp.LotType;
 
-        // Attach click handlers
-        el.querySelectorAll('.card').forEach((card, i) => {
-            card.addEventListener('click', () => openSheet(toRender[i]));
+            return `
+        <article class="cp-card" style="--avail-color:${color}" data-id="${cp.CarParkID}"
+          data-lat="${cp._lat || ''}" data-lng="${cp._lng || ''}" data-name="${(cp.Development || cp.CarParkID).replace(/"/g, '&quot;')}">
+          <div class="cp-card-top">
+            <div class="cp-card-name">${cp.Development || cp.CarParkID}</div>
+            <span class="cp-agency-badge">${cp.Agency}</span>
+          </div>
+          <div class="cp-avail-row">
+            <div class="avail-dot ${cls}"></div>
+            <span class="avail-num">${avail}</span>
+            <span class="avail-label">lots available</span>
+          </div>
+          <div class="cp-meta">${dist}${area}${lot}</div>
+          <div class="cp-actions">
+            ${cp._lat ? `
+              <button class="card-btn navigate-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                Navigate
+              </button>
+              <button class="card-btn map-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg>
+                Map
+              </button>
+            ` : ''}
+          </div>
+        </article>
+      `;
+        }).join('');
+
+        // Attach card events
+        container.querySelectorAll('.cp-card').forEach(card => {
+            const lat = parseFloat(card.dataset.lat);
+            const lng = parseFloat(card.dataset.lng);
+            const name = card.dataset.name;
+
+            card.querySelector('.navigate-btn')?.addEventListener('click', e => {
+                e.stopPropagation();
+                if (!isNaN(lat)) NavManager.open(name, lat, lng);
+            });
+            card.querySelector('.map-btn')?.addEventListener('click', e => {
+                e.stopPropagation();
+                if (!isNaN(lat)) MapManager.focusPoint(lat, lng, `🅿️ ${name}`);
+            });
         });
     }
 
-    function totalLots(cp, type = null) {
-        return cp.lots.filter(l => !type || l.type === type).reduce((s, l) => s + (l.available || 0), 0);
-    }
-
-    function cardHTML(cp) {
-        const lots = cp.lots;
-        const displayLot = lotTypeFilter !== 'all' ? lots.find(l => l.type === lotTypeFilter) : null;
-        const displayAvail = displayLot ? displayLot.available : totalLots(cp);
-        const ac = availClass(displayAvail);
-        const bc = badgeClass(displayAvail);
-        const distStr = cp._dist && cp._dist !== Infinity ? MapManager.formatDistance(cp._dist) : '';
-
-        const lotPills = lots.map(l => {
-            const icons = {
-                C: '🚗',
-                Y: '🏍️',
-                H: '🚛'
-            };
-            const c = availClass(l.available);
-            const colors = {
-                green: '#dcfce7;color:#15803d',
-                amber: '#fef3c7;color:#b45309',
-                red: '#fee2e2;color:#b91c1c',
-                grey: '#f1f5f9;color:#64748b'
-            };
-            return `<span class="lot-pill" style="background:${colors[c]}">${icons[l.type] || l.type} ${l.available ?? '–'}</span>`;
-        }).join('');
-
-        return `
-      <div class="card glass avail-${ac}" data-id="${cp.CarParkID}">
-        <div class="card-header">
-          <span class="card-title">${cp.Development || cp.CarParkID}</span>
-          <span class="card-badge ${bc}">${displayAvail ?? '–'} lots</span>
-        </div>
-        <div class="card-sub">${[cp.Area, cp.Agency].filter(Boolean).join(' · ')}</div>
-        <div class="card-meta">
-          <div class="lots-bar">${lotPills}</div>
-          ${distStr ? `<span class="card-distance">📍 ${distStr}</span>` : ''}
-        </div>
-      </div>`;
-    }
-
-    function renderMap() {
-        MapManager.clearCarparks();
-        for (const cp of allData.slice(0, 500)) {
-            const coords = getCoords(cp);
-            if (!coords) continue;
-            const avail = totalLots(cp);
-            const ac = availClass(avail);
-            const popup = `
-        <div class="popup-title">${cp.Development || cp.CarParkID}</div>
-        <div class="popup-detail">${cp.Agency} · ${avail} lots available</div>
-        <button class="popup-btn" onclick="CarparkManager.openSheetById('${cp.CarParkID}')">View Details</button>`;
-            MapManager.addCarparkMarker(cp, ac, popup);
+    // ── Load & Refresh ────────────────────────────────────
+    async function load(silent = false) {
+        if (!silent) {
+            document.getElementById('cpLoading').classList.remove('hidden');
+            document.getElementById('cpCards').innerHTML = '';
+            document.getElementById('cpEmpty').classList.add('hidden');
+            document.getElementById('cpError').classList.add('hidden');
         }
-    }
 
-    function openSheetById(id) {
-        const cp = allData.find(c => c.CarParkID === id);
-        if (cp) openSheet(cp);
-    }
-
-    function openSheet(cp) {
-        const coords = getCoords(cp);
-        const lots = cp.lots;
-
-        const lotRows = lots.map(l => {
-            const icons = {
-                C: '🚗 Cars',
-                Y: '🏍️ Motorcycles',
-                H: '🚛 Heavy Vehicles'
-            };
-            const ac = availClass(l.available);
-            const badge = `<span class="card-badge badge-${ac === 'green' ? 'green' : ac === 'amber' ? 'amber' : 'red'}">${l.available ?? '–'}</span>`;
-            return `<div class="detail-card">
-        <div class="detail-card-label">${icons[l.type] || l.type}</div>
-        <div class="detail-card-value" style="display:flex;align-items:center;gap:6px">${l.available ?? '–'} ${badge}</div>
-      </div>`;
-        }).join('');
-
-        const html = `
-      <div class="sheet-title">${cp.Development || cp.CarParkID}</div>
-      <div class="sheet-subtitle">ID: ${cp.CarParkID} &middot; ${cp.Agency}${cp.Area ? ' · ' + cp.Area : ''}</div>
-
-      <div class="sheet-section">
-        <div class="sheet-section-title">Available Lots</div>
-        <div class="detail-grid">${lotRows}</div>
-      </div>
-
-      <div class="sheet-section">
-        <div class="sheet-section-title">Details</div>
-        <div class="detail-grid">
-          <div class="detail-card">
-            <div class="detail-card-label">Agency</div>
-            <div class="detail-card-value">${cp.Agency}</div>
-          </div>
-          <div class="detail-card">
-            <div class="detail-card-label">Carpark ID</div>
-            <div class="detail-card-value">${cp.CarParkID}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="sheet-actions">
-        ${coords ? `<button class="sheet-btn btn-primary" onclick="MapManager.showNavModal(${coords.lat}, ${coords.lng}, '${(cp.Development || cp.CarParkID).replace(/'/g, "\\'")}')">🧭 Navigate</button>` : ''}
-        ${coords ? `<button class="sheet-btn btn-secondary" onclick="MapManager.openMapModal(${coords.lat}, ${coords.lng}, '${(cp.Development || cp.CarParkID).replace(/'/g, "\\'")}')">🗺️ Map View</button>` : ''}
-      </div>`;
-
-        BottomSheet.open(html);
-    }
-
-    function setListHTML(html) {
-        const el = document.getElementById('carpark-list');
-        if (el) el.innerHTML = html;
-    }
-
-    function updateLastUpdatedBadge() {
-        const el = document.getElementById('last-updated-badge');
-        if (!el || !lastUpdated) return;
-        const secs = Math.round((Date.now() - lastUpdated) / 1000);
-        el.textContent = secs < 5 ? 'Just updated' : `Updated ${secs}s ago`;
+        try {
+            allData = await fetchData();
+            lastFetch = Date.now();
+            document.getElementById('cpLoading').classList.add('hidden');
+            document.getElementById('cpError').classList.add('hidden');
+            render(getFiltered());
+        } catch (err) {
+            document.getElementById('cpLoading').classList.add('hidden');
+            if (!silent) {
+                const errEl = document.getElementById('cpError');
+                errEl.textContent = `Failed to load carpark data: ${err.message}`;
+                errEl.classList.remove('hidden');
+            }
+        }
     }
 
     function startAutoRefresh() {
         if (refreshTimer) clearInterval(refreshTimer);
-        refreshTimer = setInterval(() => {
-            const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
-            if (activeTab === 'carparks') fetchData();
-            updateLastUpdatedBadge();
-        }, 60000);
-
-        // Badge tick
-        setInterval(updateLastUpdatedBadge, 5000);
-
-        // Refresh on tab visibility
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) fetchData();
-        });
+        refreshTimer = setInterval(() => load(true), 60_000); // 1 min
     }
 
-    function initFilters() {
-        // Search
-        document.getElementById('carpark-search')?.addEventListener('input', e => {
-            searchQuery = e.target.value.trim();
-            applyFilters();
-        });
-
-        // Lot type chips
-        document.querySelectorAll('#lot-type-filter .chip').forEach(chip => {
-            chip.addEventListener('click', () => {
-                document.querySelectorAll('#lot-type-filter .chip').forEach(c => c.classList.remove('active'));
-                chip.classList.add('active');
-                lotTypeFilter = chip.dataset.filter;
-                applyFilters();
-            });
-        });
-
-        // Agency chips
-        document.querySelectorAll('#agency-filter .chip').forEach(chip => {
-            chip.addEventListener('click', () => {
-                document.querySelectorAll('#agency-filter .chip').forEach(c => c.classList.remove('active'));
-                chip.classList.add('active');
-                agencyFilter = chip.dataset.filter;
-                applyFilters();
-            });
-        });
+    function setUserLocation(lat, lng) {
+        userLat = lat;
+        userLng = lng;
+        if (allData.length) render(getFiltered());
     }
 
-    function onLocationUpdate() {
-        applyFilters();
-        renderMap();
+    function showMapAll() {
+        MapManager.showCarparks(getFiltered(), userLat, userLng);
     }
 
+    function getLastFetch() {
+        return lastFetch;
+    }
+
+    // ── Init ─────────────────────────────────────────────
     function init() {
-        initFilters();
-        fetchData();
-        startAutoRefresh();
+        // Filters
+        document.querySelectorAll('.chip[data-filter="lot"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.chip[data-filter="lot"]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                filterLot = btn.dataset.value;
+                render(getFiltered());
+            });
+        });
+        document.querySelectorAll('.chip[data-filter="agency"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.chip[data-filter="agency"]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                filterAgency = btn.dataset.value;
+                render(getFiltered());
+            });
+        });
+
+        // Search
+        let searchDebounce;
+        document.getElementById('cpSearch')?.addEventListener('input', e => {
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(() => {
+                searchQuery = e.target.value.trim();
+                render(getFiltered());
+            }, 250);
+        });
+
+        // Map button
+        document.getElementById('cpMapBtn')?.addEventListener('click', showMapAll);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
 
     return {
-        init,
-        fetchData,
-        openSheetById,
-        applyFilters,
-        onLocationUpdate
+        load,
+        startAutoRefresh,
+        setUserLocation,
+        getLastFetch
     };
 })();

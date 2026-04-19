@@ -1,306 +1,265 @@
-// ===== EV CHARGING MODULE =====
 const EVManager = (() => {
-    let allStations = [];
-    let showAvailable = true;
-    let showOccupied = true;
+    let currentData = [];
+    let currentPostal = null;
     let refreshTimer = null;
-    let lastPostalCode = null;
-    let lastUpdated = null;
+    let lastFetch = null;
 
-    const STATUS_LABELS = {
-        0: 'Occupied',
-        1: 'Available',
-        100: 'Not Available'
-    };
-    const STATUS_COLORS = {
-        0: 'badge-red',
-        1: 'badge-green',
-        100: 'badge-grey'
-    };
-    const STATUS_DOT = {
-        0: 'occupied',
-        1: 'available',
-        100: 'na'
-    };
-    const STATUS_EMOJI = {
-        0: '🔴',
-        1: '✅',
-        100: '⚫'
-    };
-
-    function stationStatus(station) {
-        const cp = station.chargingPoints || [];
-        if (!cp.length) return 100;
-        if (cp.some(p => p.status === 1)) return 1;
-        if (cp.every(p => p.status === 0)) return 0;
-        return 100;
+    // ── Status helpers ───────────────────────────────────
+    function stationStatus(st) {
+        // st.status: 1=available, 0=occupied, 100=not available
+        return st.status;
     }
 
-    async function reverseGeocode(lat, lng) {
-        try {
-            const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`, {
-                headers: {
-                    'Accept-Language': 'en'
-                }
-            });
-            const data = await resp.json();
-            const postcode = data?.address?.postcode;
-            return postcode ? postcode.replace(/\D/g, '') : null;
-        } catch {
-            return null;
-        }
+    function statusBadge(s) {
+        if (s === 1) return `<span class="ev-status-badge available">✅ Available</span>`;
+        if (s === 0) return `<span class="ev-status-badge occupied">🔴 Occupied</span>`;
+        return `<span class="ev-status-badge unavailable">⚫ Unavailable</span>`;
     }
 
-    async function searchByPostal(code) {
-        if (!code || code.length < 6) {
-            setListHTML(`<div class="empty-state"><div class="empty-icon">⚡</div><p>Please enter a 6-digit Singapore postal code.</p></div>`);
+    function pointDotClass(s) {
+        if (s === 1) return 'green';
+        if (s === 0) return 'red';
+        return 'grey';
+    }
+
+    // ── Fetch ────────────────────────────────────────────
+    async function fetchData(postal) {
+        const res = await fetch(`/api/ev?postal=${encodeURIComponent(postal)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        return (json.value || []).filter(st => st.status !== 100); // hide unavailable stations
+    }
+
+    // ── Render ────────────────────────────────────────────
+    function render(data) {
+        const container = document.getElementById('evCards');
+        const prompt = document.getElementById('evPrompt');
+
+        if (!data.length) {
+            container.innerHTML = '';
+            prompt.textContent = 'No available EV charging stations found for this postal code.';
+            prompt.classList.remove('hidden');
             return;
         }
-        lastPostalCode = code;
-        setListHTML(`<div class="loading-state"><div class="spinner"></div><p>Searching EV chargers near ${code}…</p></div>`);
-        document.getElementById('ev-count').textContent = 'Searching…';
-        try {
-            const resp = await fetch(`/api/ev?postalCode=${encodeURIComponent(code)}`);
-            if (!resp.ok) throw new Error('API error');
-            const json = await resp.json();
-            allStations = json.value || [];
-            lastUpdated = new Date();
-            updateLastUpdatedBadge();
-            renderEV();
-            renderMapEV();
-        } catch (e) {
-            console.error('EV fetch failed', e);
-            setListHTML(`<div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to fetch EV data. Please try again.</p></div>`);
-            document.getElementById('ev-count').textContent = 'Error';
-        }
-    }
+        prompt.classList.add('hidden');
 
-    function renderEV() {
-        const el = document.getElementById('ev-list');
-        const count = document.getElementById('ev-count');
-        if (!el) return;
+        container.innerHTML = data.map((st, idx) => {
+            const s = stationStatus(st);
+            const points = st.chargingPoints || [];
+            const lat = parseFloat(st.latitude);
+            const lng = parseFloat(st.longtitude);
+            const hasCoords = !isNaN(lat) && !isNaN(lng);
 
-        let stations = allStations.filter(s => {
-            const st = stationStatus(s);
-            if (st === 100) return false; // always hide unavailable
-            if (st === 1 && !showAvailable) return false;
-            if (st === 0 && !showOccupied) return false;
-            return true;
-        });
+            // Aggregate stats
+            const totalPoints = points.reduce((sum, cp) => sum + (cp.evIds?.length || 1), 0);
+            const plugTypes = [...new Set(points.flatMap(cp =>
+                (cp.plugTypes || []).map(p => p.plugType).filter(Boolean)
+            ))].join(', ') || 'N/A';
+            const speeds = [...new Set(points.flatMap(cp =>
+                (cp.plugTypes || []).map(p => p.chargingSpeed).filter(Boolean)
+            ))].map(s => `${s} kW`).join(', ') || 'N/A';
+            const prices = [...new Set(points.flatMap(cp =>
+                (cp.plugTypes || []).map(p => p.price !== undefined ? `$${p.price} ${p.priceType || ''}`.trim() : null).filter(Boolean)
+            ))].join(', ') || 'N/A';
 
-        if (!stations.length) {
-            count.textContent = '0 results';
-            setListHTML(`<div class="empty-state"><div class="empty-icon">⚡</div><p>No available EV chargers found at this location.</p></div>`);
-            return;
-        }
+            // Individual charger rows for expandable section
+            const chargerRows = points.map(cp => {
+                const pointStatuses = (cp.evIds || []).map(ev => {
+                    const evStatus = ev.status;
+                    return `<span class="ev-point-dot ${pointDotClass(evStatus)}" title="${evStatus === 1 ? 'Available' : evStatus === 0 ? 'Occupied' : 'Unavailable'}"></span>`;
+                }).join('');
 
-        // Sort: available first
-        stations.sort((a, b) => stationStatus(b) - stationStatus(a));
+                const plugInfo = (cp.plugTypes || []).map(p =>
+                    `${p.plugType || '?'} · ${p.chargingSpeed ? p.chargingSpeed + ' kW' : '?'} · ${p.price !== undefined ? '$' + p.price + ' ' + (p.priceType || '') : '?'}`
+                ).join('<br>');
 
-        count.textContent = `${stations.length} station${stations.length !== 1 ? 's' : ''} found`;
-        el.innerHTML = stations.map(s => stationCardHTML(s)).join('');
-        el.querySelectorAll('.card').forEach((card, i) => {
-            card.addEventListener('click', () => openSheet(stations[i]));
-        });
-    }
+                const hours = cp.operationHours || 'Hours not available';
 
-    function stationCardHTML(s) {
-        const st = stationStatus(s);
-        const cp = s.chargingPoints || [];
-        const avail = cp.filter(p => p.status === 1).length;
-        const total = cp.length;
-        const dotClass = STATUS_DOT[st];
-        const badgeCls = STATUS_COLORS[st];
-
-        const plugSummary = [...new Set(
-            (cp.flatMap(p => (p.plugTypes || []).map(pt => pt.plugType)))
-        )].filter(Boolean).join(', ');
-
-        const maxSpeed = Math.max(...cp.flatMap(p => (p.plugTypes || []).map(pt => pt.chargingSpeed || 0)));
-        const operators = [...new Set(cp.map(p => p.operator).filter(Boolean))].join(', ');
-
-        return `
-      <div class="card glass avail-${st === 1 ? 'green' : st === 0 ? 'red' : 'grey'}" data-station-id="${s.locationId}">
-        <div class="card-header">
-          <span class="card-title">${s.name || s.address || 'EV Station'}</span>
-          <span class="card-badge ${badgeCls}">${STATUS_EMOJI[st]} ${STATUS_LABELS[st]}</span>
-        </div>
-        <div class="card-sub">${s.address || ''}</div>
-        <div class="card-meta">
-          <div class="ev-charger-row">
-            <span class="ev-dot ${dotClass}"></span>
-            <span>${avail}/${total} pts available</span>
-            ${maxSpeed > 0 ? `<span class="meta-tag">⚡ ${maxSpeed}kW</span>` : ''}
-            ${plugSummary ? `<span class="meta-tag">${plugSummary}</span>` : ''}
-            ${operators ? `<span class="meta-tag">${operators}</span>` : ''}
+                return `
+          <div class="ev-charger-item">
+            <div class="ev-charger-left">
+              <div class="ev-charger-name">${cp.name || cp.id || 'Charger'} <span style="font-size:0.7rem;color:#888">${cp.position || ''}</span></div>
+              <div class="ev-charger-meta">${plugInfo}<br>${hours}</div>
+            </div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:60px">${pointStatuses}</div>
           </div>
-        </div>
-      </div>`;
-    }
+        `;
+            }).join('');
 
-    function renderMapEV() {
-        MapManager.clearEV();
-        for (const s of allStations) {
-            if (!s.latitude || !s.longtitude) continue;
-            const st = stationStatus(s);
-            if (st === 100) continue;
-            const avail = (s.chargingPoints || []).filter(p => p.status === 1).length;
-            const total = (s.chargingPoints || []).length;
-            const popup = `
-        <div class="popup-title">⚡ ${s.name || s.address || 'EV Station'}</div>
-        <div class="popup-detail">${avail}/${total} charging points available</div>
-        <button class="popup-btn" onclick="EVManager.openSheetByLocation('${s.locationId}')">View Details</button>`;
-            MapManager.addEVMarker(s, popup);
-        }
-
-        // Fly to first station
-        const first = allStations.find(s => s.latitude && s.longtitude);
-        if (first && MapManager.map) {
-            MapManager.map.flyTo([parseFloat(first.latitude), parseFloat(first.longtitude)], 15, {
-                duration: 0.8
-            });
-        }
-    }
-
-    function openSheetByLocation(locationId) {
-        const s = allStations.find(st => st.locationId === locationId);
-        if (s) openSheet(s);
-    }
-
-    function openSheet(s) {
-        const st = stationStatus(s);
-        const cp = s.chargingPoints || [];
-        const lat = parseFloat(s.latitude);
-        const lng = parseFloat(s.longtitude);
-
-        const chargerItems = cp.map((c, i) => {
-            const cSt = c.status;
-            const label = cSt === 1 ? 'Available' : cSt === 0 ? 'Occupied' : 'N/A';
-            const bc = cSt === 1 ? 'badge-green' : cSt === 0 ? 'badge-red' : 'badge-grey';
-            const pts = (c.plugTypes || []).map(pt =>
-                `<div class="charger-item-detail">${[pt.plugType, pt.powerRating, pt.chargingSpeed ? pt.chargingSpeed + 'kW' : '', pt.price ? '$' + pt.price + (pt.priceType === 'kWh' ? '/kWh' : '/h') : ''].filter(Boolean).join(' · ')}</div>`
-            ).join('');
-            const hours = c.operationHours || 'Hours not available';
             return `
-        <div class="charger-item">
-          <div class="charger-item-header">
-            <span class="charger-item-name">${c.name || `Charger ${i + 1}`}</span>
-            <span class="card-badge ${bc}">${label}</span>
+        <article class="ev-card" data-idx="${idx}">
+          <div class="ev-card-header">
+            <div class="ev-card-name">${st.name}</div>
+            ${statusBadge(s)}
           </div>
-          <div class="charger-item-detail">📍 ${c.position || '–'} &middot; ${c.operator || '–'}</div>
-          <div class="charger-item-detail">🕐 ${hours}</div>
-          ${pts}
-        </div>`;
+          <div class="ev-card-body">
+            <div class="ev-addr">📍 ${st.address}</div>
+            <div class="ev-stats">
+              <div class="ev-stat">🔌 <strong>${totalPoints}</strong> point${totalPoints !== 1 ? 's' : ''}</div>
+              <div class="ev-stat">⚡ <strong>${speeds}</strong></div>
+              <div class="ev-stat">🔧 <strong>${plugTypes}</strong></div>
+              <div class="ev-stat">💰 <strong>${prices}</strong></div>
+            </div>
+          </div>
+          ${points.length ? `
+            <button class="ev-chargers-toggle" data-idx="${idx}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s"><polyline points="6 9 12 15 18 9"/></svg>
+              See ${points.length} charger${points.length !== 1 ? 's' : ''}
+            </button>
+            <div class="ev-charger-list" id="evChargerList-${idx}">
+              ${chargerRows}
+            </div>
+          ` : ''}
+          <div class="ev-card-actions">
+            ${hasCoords ? `
+              <button class="card-btn navigate-btn" data-lat="${lat}" data-lng="${lng}" data-name="${st.name.replace(/"/g, '&quot;')}">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                Navigate
+              </button>
+              <button class="card-btn map-btn" data-lat="${lat}" data-lng="${lng}" data-name="${st.name.replace(/"/g, '&quot;')}">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg>
+                Map
+              </button>
+            ` : ''}
+          </div>
+        </article>
+      `;
         }).join('');
 
-        const html = `
-      <div class="sheet-title">${s.name || s.address || 'EV Station'}</div>
-      <div class="sheet-subtitle">${s.address || ''}</div>
+        // Events
+        container.querySelectorAll('.ev-chargers-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const list = document.getElementById(`evChargerList-${btn.dataset.idx}`);
+                if (!list) return;
+                const open = list.classList.toggle('open');
+                btn.querySelector('svg').style.transform = open ? 'rotate(180deg)' : '';
+            });
+        });
 
-      <div class="sheet-section">
-        <div class="sheet-section-title">Overall Status</div>
-        <div class="detail-grid">
-          <div class="detail-card">
-            <div class="detail-card-label">Status</div>
-            <div class="detail-card-value">${STATUS_EMOJI[st]} ${STATUS_LABELS[st]}</div>
-          </div>
-          <div class="detail-card">
-            <div class="detail-card-label">Charging Points</div>
-            <div class="detail-card-value">${cp.filter(p => p.status === 1).length} / ${cp.length}</div>
-          </div>
-        </div>
-      </div>
-
-      ${cp.length ? `
-      <div class="sheet-section">
-        <div class="sheet-section-title">Chargers</div>
-        <div class="charger-list">${chargerItems}</div>
-      </div>` : ''}
-
-      <div class="sheet-actions">
-        ${lat && lng ? `<button class="sheet-btn btn-primary" onclick="MapManager.showNavModal(${lat}, ${lng}, '${(s.name || s.address || 'EV Station').replace(/'/g, "\\'")}')">🧭 Navigate</button>` : ''}
-        ${lat && lng ? `<button class="sheet-btn btn-secondary" onclick="MapManager.openMapModal(${lat}, ${lng}, '${(s.name || s.address || 'EV Station').replace(/'/g, "\\'")}')">🗺️ Map View</button>` : ''}
-      </div>`;
-
-        BottomSheet.open(html);
+        container.querySelectorAll('.navigate-btn').forEach(btn => {
+            btn.addEventListener('click', () => NavManager.open(btn.dataset.name, parseFloat(btn.dataset.lat), parseFloat(btn.dataset.lng)));
+        });
+        container.querySelectorAll('.map-btn').forEach(btn => {
+            btn.addEventListener('click', () => MapManager.focusPoint(parseFloat(btn.dataset.lat), parseFloat(btn.dataset.lng), `⚡ ${btn.dataset.name}`));
+        });
     }
 
-    function setListHTML(html) {
-        const el = document.getElementById('ev-list');
-        if (el) el.innerHTML = html;
+    // ── Load ─────────────────────────────────────────────
+    async function load(postal, silent = false) {
+        currentPostal = postal;
+        const loadEl = document.getElementById('evLoading');
+        const errEl = document.getElementById('evError');
+        const prompt = document.getElementById('evPrompt');
+
+        if (!silent) {
+            loadEl.classList.remove('hidden');
+            errEl.classList.add('hidden');
+            prompt.classList.add('hidden');
+            document.getElementById('evCards').innerHTML = '';
+        }
+
+        try {
+            currentData = await fetchData(postal);
+            lastFetch = Date.now();
+            loadEl.classList.add('hidden');
+            errEl.classList.add('hidden');
+            render(currentData);
+        } catch (err) {
+            loadEl.classList.add('hidden');
+            if (!silent) {
+                errEl.textContent = `Failed to load EV data: ${err.message}`;
+                errEl.classList.remove('hidden');
+            }
+        }
     }
 
-    function updateLastUpdatedBadge() {
-        const el = document.getElementById('last-updated-badge');
-        if (!el || !lastUpdated) return;
-        const secs = Math.round((Date.now() - lastUpdated) / 1000);
-        el.textContent = secs < 5 ? 'Just updated' : `Updated ${secs}s ago`;
+    function showMapAll() {
+        MapManager.showEV(currentData);
     }
 
     function startAutoRefresh() {
         if (refreshTimer) clearInterval(refreshTimer);
         refreshTimer = setInterval(() => {
-            const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
-            if (activeTab === 'ev' && lastPostalCode) searchByPostal(lastPostalCode);
-            updateLastUpdatedBadge();
-        }, 300000); // 5 min
+            if (currentPostal) load(currentPostal, true);
+        }, 300_000); // 5 min
     }
 
-    function initFilters() {
-        // EV status filter chips
-        document.querySelectorAll('[data-ev-filter]').forEach(chip => {
-            chip.addEventListener('click', () => {
-                chip.classList.toggle('active');
-                const f = chip.dataset.evFilter;
-                if (f === 'available') showAvailable = chip.classList.contains('active');
-                if (f === 'occupied') showOccupied = chip.classList.contains('active');
-                renderEV();
-            });
-        });
+    function getLastFetch() {
+        return lastFetch;
+    }
 
-        // Postal code input
-        document.getElementById('ev-postal-input')?.addEventListener('keydown', e => {
-            if (e.key === 'Enter') {
-                const val = e.target.value.trim().replace(/\D/g, '');
-                searchByPostal(val);
+    // ── Reverse geocode postal code from lat/lng ──────────
+    async function resolvePostalFromCoords(lat, lng) {
+        // Use Nominatim reverse geocode
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`;
+        const res = await fetch(url, {
+            headers: {
+                'Accept-Language': 'en'
             }
         });
+        const json = await res.json();
+        const postal = json?.address?.postcode;
+        if (!postal) throw new Error('Could not determine postal code from your location.');
+        return postal.replace(/\D/g, '').slice(0, 6);
+    }
 
-        // Search button
-        document.getElementById('ev-search-btn')?.addEventListener('click', () => {
-            const val = document.getElementById('ev-postal-input')?.value.trim().replace(/\D/g, '');
-            searchByPostal(val);
-        });
-
-        // Locate button
-        document.getElementById('ev-locate-btn')?.addEventListener('click', async () => {
-            const uLat = MapManager.userLat;
-            const uLng = MapManager.userLng;
-            if (!uLat || !uLng) {
-                alert('Location not available. Please allow location access and try again.');
+    // ── Init ─────────────────────────────────────────────
+    function init() {
+        document.getElementById('evSearch')?.addEventListener('click', () => {
+            const postal = document.getElementById('evPostal').value.trim();
+            if (!/^\d{6}$/.test(postal)) {
+                const err = document.getElementById('evError');
+                err.textContent = 'Please enter a valid 6-digit Singapore postal code.';
+                err.classList.remove('hidden');
                 return;
             }
-            const btn = document.getElementById('ev-locate-btn');
-            btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px"></div>';
-            const postal = await reverseGeocode(uLat, uLng);
-            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 1 8 8c0 6-8 13-8 13S4 16 4 10a8 8 0 0 1 8-8z"/></svg>`;
-            if (postal) {
-                document.getElementById('ev-postal-input').value = postal;
-                searchByPostal(postal);
-            } else {
-                alert('Could not determine your postal code. Please enter it manually.');
+            load(postal);
+            startAutoRefresh();
+        });
+
+        document.getElementById('evPostal')?.addEventListener('keydown', e => {
+            if (e.key === 'Enter') document.getElementById('evSearch').click();
+        });
+
+        document.getElementById('evLocate')?.addEventListener('click', async () => {
+            const btn = document.getElementById('evLocate');
+            btn.disabled = true;
+            btn.textContent = 'Locating…';
+            try {
+                const pos = await new Promise((res, rej) =>
+                    navigator.geolocation.getCurrentPosition(res, rej, {
+                        enableHighAccuracy: true,
+                        timeout: 10000
+                    })
+                );
+                const postal = await resolvePostalFromCoords(pos.coords.latitude, pos.coords.longitude);
+                document.getElementById('evPostal').value = postal;
+                load(postal);
+                startAutoRefresh();
+            } catch (err) {
+                const errEl = document.getElementById('evError');
+                errEl.textContent = `Location error: ${err.message}`;
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg> My Location`;
             }
+        });
+
+        document.getElementById('evMapBtn')?.addEventListener('click', () => {
+            if (currentData.length) showMapAll();
         });
     }
 
-    function init() {
-        initFilters();
-        startAutoRefresh();
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
 
     return {
-        init,
-        openSheetByLocation,
-        searchByPostal
+        load,
+        startAutoRefresh,
+        getLastFetch
     };
 })();

@@ -1,62 +1,49 @@
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    if (req.method !== 'GET') return res.status(405).json({
+        error: 'Method not allowed'
+    });
 
-    const apiKey = process.env.LTA_ACCOUNT_KEY;
-    if (!apiKey) {
-        return res.status(500).json({
-            error: 'LTA_ACCOUNT_KEY not configured'
-        });
-    }
+    const LTA_KEY = process.env.LTA_ACCOUNT_KEY;
+    if (!LTA_KEY) return res.status(500).json({
+        error: 'LTA API key not configured'
+    });
 
     const {
-        postalCode
+        postal
     } = req.query;
-    if (!postalCode) {
+    if (!postal || !/^\d{6}$/.test(postal)) {
         return res.status(400).json({
-            error: 'postalCode query parameter is required'
+            error: 'Valid 6-digit postal code required'
         });
     }
 
-    // Sanitise: Singapore postal codes are 6 digits
-    const clean = String(postalCode).replace(/\D/g, '').slice(0, 6);
-    if (clean.length !== 6) {
-        return res.status(400).json({
-            error: 'Invalid postal code format'
-        });
-    }
+    const url = `https://datamall2.mytransport.sg/ltaodataservice/EVChargingPoints?PostalCode=${postal}`;
 
     try {
-        const url = `https://datamall2.mytransport.sg/ltaodataservice/EVChargingPoints?PostalCode=${clean}`;
-        const resp = await fetch(url, {
+        const ltaRes = await fetch(url, {
             headers: {
-                AccountKey: apiKey,
+                AccountKey: LTA_KEY,
                 accept: 'application/json',
             },
         });
 
-        if (!resp.ok) {
-            const text = await resp.text();
-            return res.status(resp.status).json({
-                error: 'LTA API error',
-                detail: text
-            });
-        }
+        if (!ltaRes.ok) throw new Error(`LTA API error: ${ltaRes.status}`);
+        const data = await ltaRes.json();
 
-        const data = await resp.json();
-
-        // Cache for 4.5 minutes (API updates every 5 min)
+        // Cache for 4.5 minutes (just under 5-min update freq)
         res.setHeader('Cache-Control', 's-maxage=270, stale-while-revalidate=30');
         return res.status(200).json({
-            value: data.value || []
+            value: data.value || [],
+            count: (data.value || []).length
         });
     } catch (err) {
         console.error('EV API error:', err);
-        return res.status(500).json({
+        return res.status(502).json({
             error: err.message
         });
     }
